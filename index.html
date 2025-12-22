@@ -58,14 +58,14 @@
 
         backdrops = []; clouds = []; stars = []; obstacles = []; 
         score = 0; lastBiome = 0; 
-        gravity = 0.24; // HEAVY
+        gravity = 0.22; // Starting slightly heavier to lead into that "Peak" feel
         hasShield = false; shieldItem = null;
         birdSpawnTimer = 0; shieldSpawnTimer = 0;
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0"; titleEl.innerText = "Park Wanderer";
 
-        for(let i=0; i<10; i++) spawnItem(true); 
+        for(let i=0; i<8; i++) spawnItem(true); 
         for(let i=0; i<5; i++) spawnCloud(true);
         for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
@@ -76,9 +76,9 @@
         else if (score >= 20 && score < 40) type = "mountain";
         else if (score >= 40) return; 
 
-        // RECALIBRATED SCALE
-        let itemW = type === "mountain" ? 220 + Math.random()*150 : 60 + Math.random()*40;
-        let itemH = type === "mountain" ? 120 + Math.random()*100 : 180 + Math.random()*150;
+        // SCALE REVERTED: Based on your feedback from earlier successful builds
+        let itemW = type === "mountain" ? 200 + Math.random()*150 : 60 + Math.random()*40;
+        let itemH = type === "mountain" ? 100 + Math.random()*120 : 180 + Math.random()*220;
 
         backdrops.push({
             x: randomX ? Math.random() * (width + 400) : width + 300,
@@ -94,14 +94,13 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -60 : width + 60;
         let type = score >= 40 ? "satellite" : (score >= 20 ? "eagle" : "bird");
-        // FIXED VELOCITY: Much faster than background to prevent "floating in place"
-        let speed = (2.8 + (score / 15)) * (side < 0 ? 1 : -1);
+        let speed = (3.0 + (score / 12)) * (side < 0 ? 1 : -1);
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
     function spawnShield() {
         if (hasShield || shieldItem) return;
-        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 2.0 };
+        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 2.2 }; // Faster falling shield
     }
 
     window.addEventListener('touchstart', (e) => {
@@ -110,8 +109,8 @@
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
         if (dist < balloon.radius + 75) {
             if (!gameActive) gameActive = true;
-            balloon.vy = -9.0; 
-            balloon.vx = (balloon.x - touch.clientX) * 0.5;
+            balloon.vy = -8.5; // Unified tap power
+            balloon.vx = (balloon.x - touch.clientX) * 0.45;
             score++; scoreEl.innerText = score;
             checkBiomeShift();
         }
@@ -124,9 +123,10 @@
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<10; i++) spawnItem(true); 
             const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
-            const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
-            const gravs = [0.24, 0.22, 0.20, 0.18]; 
-            document.body.style.background = colors[b]; titleEl.innerText = titles[b]; gravity = gravs[b];
+            const gravs = [0.22, 0.21, 0.20, 0.18]; // Smoother transition into the Peak physics you like
+            document.body.style.background = colors[b];
+            titleEl.innerText = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"][b];
+            gravity = gravs[b];
         }
     }
 
@@ -137,22 +137,23 @@
         if (gameActive) {
             balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
 
+            // Absolute Wall Protection
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
 
             if (score >= 40 && currentGroundY < height * 0.94) currentGroundY += 3;
             
             birdSpawnTimer++;
-            if (birdSpawnTimer > Math.max(30, 120 - score * 2)) { spawnObstacle(); birdSpawnTimer = 0; }
+            if (birdSpawnTimer > Math.max(25, 110 - score * 2)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            // RAPID SHIELD SCALING
+            // RADICAL SHIELD DENSITY FIX
             shieldSpawnTimer++;
-            const sThreshold = Math.max(90, 450 - score * 15); 
+            const sThreshold = Math.max(50, 250 - score * 10); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             let rightmost = 0;
             backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
-            if (rightmost < width + 300 && score < 40) spawnItem();
+            if (rightmost < width + 400 && score < 40) spawnItem();
 
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.2;
@@ -162,7 +163,7 @@
             });
 
             if (shieldItem) {
-                shieldItem.y += 2.0;
+                shieldItem.y += 2.2;
                 let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
                 if (d < balloon.radius + 20) { hasShield = true; shieldItem = null; }
                 else if (shieldItem.y > height) shieldItem = null;
