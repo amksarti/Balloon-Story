@@ -93,7 +93,7 @@
         <h1 class="game-title">BALLOON STORY</h1>
         <p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to play</p>
         <div class="toggle-box">
-            <label><input type="checkbox" id="god-toggle"> Invincible Mode</label>
+            <label><input type="checkbox" id="god-toggle"> Invincible</label>
         </div>
         <button class="btn" onclick="startGame()">Play</button>
     </div>
@@ -252,7 +252,8 @@
             }
 
             checkBiomeShift();
-            if (score > highScore) {
+            // HIGH SCORE LOGIC: Only save if Invincible is OFF
+            if (!godToggle.checked && score > highScore) {
                 highScore = score;
                 localStorage.setItem('balloonHighScore', highScore);
                 bestEl.innerText = `Best: ${highScore}`;
