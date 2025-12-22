@@ -52,3 +52,35 @@ Peak Seeker	35+	0.20	High-altitude eagles
 Astronaut	60+	0.18	Satellites, Solar Flares
 
 Exosphere	100+	0.12	Persistent Satellites, increased horizontal drift
+
+
+Technical Architecture
+
+
+    Language: Vanilla JavaScript (ES6+)
+
+    Graphics: HTML5 Canvas API
+
+    Logic: Unified State Wind Engine with synchronized visual and physical triggers.
+
+    State Management: LocalStorage integration for persistent high-score tracking.
+
+
+Licensing and Attribution
+
+This project is licensed under the MIT License.
+
+Branding and Assets: The underlying source code is open-source. However, the "Balloon Story" name, specific biome narrative, and associated visual assets remain the intellectual property of the original author. Attribution is required for forks or derivative works.
+
+Deployment
+
+To run the simulation locally, clone the repository and open the index file in any modern web browser.
+
+Bash
+
+
+    git clone https://github.com/[YourUsername]/balloon-story.git
+
+    cd balloon-story
+
+    open index.html
