@@ -118,7 +118,7 @@
     const godToggle = document.getElementById('god-toggle');
     const menuBtn = document.getElementById('menu-btn');
 
-    // --- SACRED PHYSICS ---
+    // --- LOCKED SACRED PHYSICS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60, 100]; 
@@ -127,7 +127,19 @@
     let width, height, balloon, score, gameState, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
-    let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10, active: false };
+    
+    // --- NEW ODOMETER WIND LOGIC ---
+    let wind = {
+        active: false,
+        timer: 0,
+        maxTimer: 200,
+        force: 0,
+        visualX: 0,
+        pointsSinceLast: 0,
+        triggerDistance: 10,
+        lastScoreCounted: 0
+    };
+
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -141,8 +153,12 @@
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shakeTimer = 0; 
         
-        // Initial wind schedule
-        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 8 + Math.floor(Math.random()*6), active: false };
+        // Reset Odometer
+        wind.active = false;
+        wind.timer = 0;
+        wind.pointsSinceLast = 0;
+        wind.lastScoreCounted = 0;
+        wind.triggerDistance = 8 + Math.floor(Math.random() * 6);
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -242,16 +258,6 @@
             if (score === MILESTONES[2]) triggerMilestone(STAGE_NAMES[3]);
             if (score === MILESTONES[3]) triggerMilestone(STAGE_NAMES[4]);
 
-            // TRIGGER WIND: Robust schedule check
-            if (score >= wind.nextAt && !wind.active) {
-                wind.active = true;
-                let isSpace = score >= MILESTONES[2];
-                wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.3 : 1.8);
-                wind.timer = isSpace ? 110 : 230; 
-                wind.maxTimer = wind.timer;
-                shakeTimer = 18; 
-            }
-
             checkBiomeShift();
             if (!godToggle.checked && score > highScore) {
                 highScore = score;
@@ -291,14 +297,28 @@
             decor.forEach(d => d.x -= d.speed);
             clouds.forEach(c => c.x -= c.speed);
             
-            if (wind.timer > 0) {
+            // --- CORE WIND ODEMETER SYSTEM ---
+            if (!wind.active) {
+                if (score > wind.lastScoreCounted) {
+                    wind.pointsSinceLast++;
+                    wind.lastScoreCounted = score;
+                }
+                if (wind.pointsSinceLast >= wind.triggerDistance) {
+                    wind.active = true;
+                    let isSpace = score >= MILESTONES[2];
+                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.3 : 1.8);
+                    wind.timer = isSpace ? 110 : 230; 
+                    wind.maxTimer = wind.timer;
+                    shakeTimer = 18; 
+                }
+            } else {
                 balloon.vx += wind.force * 0.05; 
                 wind.timer--; 
                 wind.visualX += wind.force * 18;
-                // RESET WIND: Only schedule the NEXT one once this one finishes
                 if (wind.timer <= 0) {
                     wind.active = false;
-                    wind.nextAt = score + 8 + Math.floor(Math.random()*6);
+                    wind.pointsSinceLast = 0;
+                    wind.triggerDistance = 8 + Math.floor(Math.random() * 8);
                 }
             }
 
