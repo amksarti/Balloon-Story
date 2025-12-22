@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Invincible | Wind Opacity Synced</div>
+        <div id="test-tag">Testing Mode: Invincible | Enhanced Visuals</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
@@ -46,16 +46,15 @@
     const bestEl = document.getElementById('best-score');
     const titleEl = document.getElementById('title');
 
-    // --- SACRED PHYSICS ANCHORS (LOCKED) ---
+    // --- SACRED PHYSICS ANCHORS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60]; 
 
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
-    let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
+    let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null, decor = [];
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
     
-    // Wind Management
     let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10, active: false };
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -65,7 +64,7 @@
         currentGroundY = height * 0.88;
 
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
-        backdrops = []; clouds = []; stars = []; obstacles = []; 
+        backdrops = []; clouds = []; stars = []; obstacles = []; decor = [];
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shieldItem = null; 
         
@@ -76,8 +75,9 @@
         bestEl.innerText = `Best: ${highScore}`;
         titleEl.innerText = "Park Wanderer";
 
+        // Initial Populations
         for(let i=0; i<15; i++) spawnItem(true); 
-        for(let i=0; i<5; i++) spawnCloud(true);
+        for(let i=0; i<10; i++) spawnCloud(true);
         for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
 
@@ -94,10 +94,27 @@
             x: randomX ? Math.random() * (width + 600) : width + 400,
             type: type, w: itemW, h: itemH, speed: type === "mountain" ? 1.2 : 1.6
         });
+
+        // Add Park Decorations (Trees)
+        if (type === "hill" && Math.random() > 0.4) {
+            decor.push({
+                x: randomX ? Math.random() * (width + 600) : width + 400,
+                type: 'tree',
+                w: 15 + Math.random()*10,
+                h: 40 + Math.random()*30,
+                speed: 1.6
+            });
+        }
     }
 
     function spawnCloud(randomX = false) {
-        clouds.push({ x: randomX ? Math.random() * width : width + 150, y: Math.random() * (height * 0.5), size: 30 + Math.random() * 50, speed: 0.4 + Math.random() * 0.5 });
+        clouds.push({ 
+            x: randomX ? Math.random() * (width + 300) : width + 200, 
+            y: Math.random() * (height * 0.5), 
+            size: 40 + Math.random() * 60, 
+            speed: 0.2 + Math.random() * 0.6,
+            alpha: 0.1 + Math.random() * 0.3
+        });
     }
 
     function spawnObstacle() {
@@ -150,7 +167,7 @@
 
         if (b !== lastBiome) {
             lastBiome = b;
-            backdrops = []; 
+            backdrops = []; decor = [];
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<12; i++) spawnItem(true); 
             
@@ -162,6 +179,7 @@
 
     function update() {
         backdrops.forEach(b => b.x -= b.speed);
+        decor.forEach(d => d.x -= d.speed);
         clouds.forEach(c => c.x -= c.speed);
         
         if (gameActive) {
@@ -186,15 +204,18 @@
             const sThreshold = Math.max(50, 250 - score * 10); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
+            // Refill
             let rightmost = 0;
             backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
             if (rightmost < width + 100 && score < MILESTONES[2]) spawnItem();
+
+            if (clouds.length < 10) spawnCloud();
 
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { if (hasShield) hasShield = false; obstacles.splice(i, 1); }
-                if (o.x < -150 || o.x > width + 150) obstacles.splice(i, 1);
+                if (o.x < -200 || o.x > width + 200) obstacles.splice(i, 1);
             });
 
             if (shieldItem) {
@@ -214,6 +235,13 @@
 
     function draw() {
         ctx.clearRect(0, 0, width, height);
+        
+        // Dynamic Clouds (Pre-Background Layer)
+        clouds.forEach(c => {
+            ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`;
+            ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill();
+        });
+
         if (score >= MILESTONES[0]) {
             ctx.fillStyle = "white";
             stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); });
@@ -235,25 +263,28 @@
             }
         });
 
-        // --- IMPROVED WIND SYNC ---
+        // Decorations (Trees)
+        decor.forEach(d => {
+            ctx.fillStyle = "#1a331a";
+            ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); // Trunk
+            ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill();
+        });
+
+        // Wind/Flare Sync
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
-            // Fade logic: opacity is linked to current timer / maxTimer
-            let opacity = Math.min(1, wind.timer / 40); // Rapid fade out at the very end
-            if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40; // Fade in
-
+            let opacity = Math.min(1, wind.timer / 40);
+            if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
             ctx.globalAlpha = opacity;
             ctx.strokeStyle = isSpace ? "rgba(255, 120, 0, 0.7)" : "rgba(255, 255, 255, 0.4)";
             ctx.lineWidth = isSpace ? 6 : 2;
             if (isSpace) { ctx.shadowBlur = 20; ctx.shadowColor = "#FF4500"; }
-            
             for(let i=0; i<6; i++) {
                 let y = (height * 0.2) + i * (height * 0.12);
                 let xStart = (wind.visualX + (i * 120)) % (width + 200) - 100;
                 ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 90 : -90), y); ctx.stroke();
             }
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
 
         if (score >= MILESTONES[2]) {
