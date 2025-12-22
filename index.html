@@ -58,7 +58,7 @@
 
         backdrops = []; clouds = []; stars = []; obstacles = []; 
         score = 0; lastBiome = 0; 
-        gravity = 0.24; // HEAVY START
+        gravity = 0.24; // LOCKED: Park Gravity
         hasShield = false; shieldItem = null;
         birdSpawnTimer = 0; shieldSpawnTimer = 0;
         
@@ -76,9 +76,9 @@
         else if (score >= 20 && score < 40) type = "mountain";
         else if (score >= 40) return; 
 
-        // PARK SCALE: Hill height kept low (30-60px), widths remain large.
+        // HILL HEIGHT LOCKED: 30-50px
         let itemW = type === "mountain" ? 300 + Math.random()*400 : 70 + Math.random()*60;
-        let itemH = type === "hill" ? 30 + Math.random()*30 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
+        let itemH = type === "hill" ? 30 + Math.random()*20 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
 
         backdrops.push({
             x: randomX ? Math.random() * (width + 400) : width + 300,
@@ -94,7 +94,6 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
         let type = score >= 40 ? "satellite" : (score >= 20 ? "eagle" : "bird");
-        // SPEED RECALIBRATION: Slower scaling (score/40 instead of score/20)
         let speed = (side < 0 ? 1 : -1) * (1.2 + (score/40));
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
@@ -110,10 +109,9 @@
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
         if (dist < balloon.radius + 75) {
             if (!gameActive) gameActive = true;
-            balloon.vy = -8.8; // HEAVY TAP
+            balloon.vy = -8.8; // LOCKED: Tap Power
             balloon.vx = (balloon.x - touch.clientX) * 0.5;
-            score++;
-            scoreEl.innerText = score;
+            score++; scoreEl.innerText = score;
             checkBiomeShift();
         }
     }, { passive: false });
@@ -121,12 +119,11 @@
     function checkBiomeShift() {
         let b = 0; if (score >= 10) b = 1; if (score >= 20) b = 2; if (score >= 40) b = 3;
         if (b !== lastBiome) {
-            lastBiome = b;
-            backdrops = []; 
+            lastBiome = b; backdrops = []; 
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<10; i++) spawnItem(true); 
             
-            // GRAVITY DECREASE RESTORED: Park(0.24) City(0.22) Peaks(0.20) Space(0.18)
+            // LOCKED: Gravity Step-down
             const gravs = [0.24, 0.22, 0.20, 0.18];
             const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
             const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
@@ -144,19 +141,17 @@
         if (gameActive) {
             balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
 
-            // Absolute Screen Locking
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
 
             if (score >= 40 && currentGroundY < height * 0.94) currentGroundY += 3;
             
-            // SPAWN FREQUENCY RECALIBRATION: Slower spawn (Threshold 60-180 instead of 35-140)
             birdSpawnTimer++;
             if (birdSpawnTimer > Math.max(60, 180 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            // SHIELD DENSITY MAINTAINED
+            // SHIELD DENSITY INCREASED
             shieldSpawnTimer++;
-            const sThreshold = Math.max(60, 300 - score * 10); 
+            const sThreshold = Math.max(50, 250 - score * 12); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             let rightmost = 0;
@@ -216,12 +211,12 @@
         }
 
         if (currentGroundY < height + 50) {
-            ctx.fillStyle = score < 10 ? '#4CAF50' : (score < 20 ? '#555' : '#0a0a0a');
+            ctx.fillStyle = score < 10 ? '#4CAF50' : (score < 20 ? '#444' : '#0a0a0a');
             ctx.fillRect(0, currentGroundY, width, height);
         }
 
         obstacles.forEach(o => {
-            // HINGE REMOVED: Back to clean thick-lined wings
+            // HINGE REMOVED: Only wing strokes
             ctx.lineWidth = 5;
             ctx.strokeStyle = (score >= 10) ? "white" : "#333";
             if (o.type === "satellite") {
