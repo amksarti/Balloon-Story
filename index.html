@@ -25,18 +25,58 @@
         #score-container { font-weight: 900; line-height: 1; margin-top: 5px;}
         #current-score { font-size: 4rem; display: block; }
         #best-score { font-size: 1rem; opacity: 0.7; margin-top: 5px; display: block; }
-        #test-tag { font-size: 0.7rem; color: #FFD700; text-transform: uppercase; margin-bottom: 5px; }
+        
+        /* Overlays */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.4); color: white; z-index: 20; text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        .btn {
+            background: white; color: black; padding: 15px 40px; border-radius: 30px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 20px; pointer-events: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #milestone-pop {
+            position: absolute; top: 30%; width: 100%; text-align: center;
+            color: #FFD700; font-weight: bold; font-size: 1.5rem; text-transform: uppercase;
+            letter-spacing: 4px; opacity: 0; transition: opacity 0.5s; z-index: 15;
+        }
+        #toggle-container {
+            position: absolute; bottom: 5%; width: 100%; text-align: center; z-index: 30;
+            color: white; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase;
+        }
+        input[type="checkbox"] { transform: scale(1.2); margin-right: 8px; vertical-align: middle; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Stochastic Wind | Locked Physics</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
             <span id="best-score">Best: 0</span>
         </div>
     </div>
+
+    <div id="start-overlay" class="overlay">
+        <h1 style="letter-spacing: 5px;">BALLOON STORY</h1>
+        <p style="opacity: 0.8;">Tap the balloon to begin your ascent</p>
+        <div class="btn" onclick="startGame()">Launch Mission</div>
+    </div>
+
+    <div id="gameover-overlay" class="overlay" style="display: none;">
+        <h2 style="letter-spacing: 3px; color: #FF5F5F;">MISSION FAILED</h2>
+        <p id="final-stats" style="margin: 10px 0;"></p>
+        <div class="btn" onclick="init()">Try Again</div>
+    </div>
+
+    <div id="milestone-pop">SPACE REACHED</div>
+
+    <div id="toggle-container">
+        <label><input type="checkbox" id="god-toggle" checked> Invincible Mode</label>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -45,32 +85,35 @@
     const scoreEl = document.getElementById('current-score');
     const bestEl = document.getElementById('best-score');
     const titleEl = document.getElementById('title');
+    const milestonePop = document.getElementById('milestone-pop');
+    const godToggle = document.getElementById('god-toggle');
 
-    // --- SACRED PHYSICS ANCHORS (LOCKED) ---
-    const SACRED_GRAVITY = [0.24, 0.22, 0.20, 0.18];
-    const SACRED_TAP = -8.8;
+    // --- SACRED PHYSICS ---
+    const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
+    const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60]; 
 
-    let width, height, balloon, score, gameActive, gravity, currentGroundY;
+    let width, height, balloon, score, gameState, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null, decor = [];
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
-    
-    // Wind Management (Stochastic Logic)
     let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12, active: false };
+    let shakeTimer = 0;
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
         width = window.innerWidth; height = window.innerHeight;
         canvas.width = width; canvas.height = height;
         currentGroundY = height * 0.88;
+        gameState = 'START';
+        
+        document.getElementById('start-overlay').style.display = 'flex';
+        document.getElementById('gameover-overlay').style.display = 'none';
 
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = [];
-        score = 0; lastBiome = 0; gravity = SACRED_GRAVITY[0]; 
-        hasShield = false; shieldItem = null; 
-        
-        // Randomize the first wind event
-        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*6), active: false };
+        score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
+        hasShield = false; shieldItem = null; shakeTimer = 0;
+        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12 + Math.floor(Math.random()*6), active: false };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -82,11 +125,29 @@
         for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
 
+    function startGame() {
+        gameState = 'PLAYING';
+        document.getElementById('start-overlay').style.display = 'none';
+    }
+
+    function triggerMilestone(text) {
+        milestonePop.innerText = text;
+        milestonePop.style.opacity = 1;
+        setTimeout(() => milestonePop.style.opacity = 0, 2000);
+    }
+
+    function gameOver() {
+        if (godToggle.checked) return;
+        gameState = 'GAMEOVER';
+        document.getElementById('gameover-overlay').style.display = 'flex';
+        document.getElementById('final-stats').innerText = `Altitude: ${score} | Reached: ${titleEl.innerText}`;
+    }
+
     function spawnItem(randomX = false) {
         let type = "hill";
-        if (score >= MILESTONES[0] && score < MILESTONES[1]) type = "building";
-        else if (score >= MILESTONES[1] && score < MILESTONES[2]) type = "mountain";
-        else if (score >= MILESTONES[2]) return; 
+        if (score >= MILESTONES[0]) type = "building";
+        if (score >= MILESTONES[1]) type = "mountain";
+        if (score >= MILESTONES[2]) return; 
 
         let itemW = type === "hill" ? 220 + Math.random()*150 : (type === "mountain" ? 300 + Math.random()*400 : 75 + Math.random()*60);
         let itemH = type === "hill" ? 30 + Math.random()*25 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
@@ -102,13 +163,7 @@
     }
 
     function spawnCloud(randomX = false) {
-        clouds.push({ 
-            x: randomX ? Math.random() * (width + 300) : width + 200, 
-            y: Math.random() * (height * 0.5), 
-            size: 40 + Math.random() * 60, 
-            speed: 0.2 + Math.random() * 0.6,
-            alpha: 0.1 + Math.random() * 0.3
-        });
+        clouds.push({ x: randomX ? Math.random() * (width + 300) : width + 200, y: Math.random() * (height * 0.5), size: 40 + Math.random() * 60, speed: 0.2 + Math.random() * 0.6, alpha: 0.1 + Math.random() * 0.3 });
     }
 
     function spawnObstacle() {
@@ -118,35 +173,32 @@
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
-    function spawnShield() {
-        if (hasShield || shieldItem) return;
-        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 1.8 };
-    }
-
     window.addEventListener('touchstart', (e) => {
-        if (!balloon) return;
+        if (gameState !== 'PLAYING') return;
         const touch = e.touches[0];
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
-        if (dist < balloon.radius + 75) {
-            if (!gameActive) gameActive = true;
-            balloon.vy = SACRED_TAP; 
+        if (dist < balloon.radius + 80) {
+            balloon.vy = TAP_POWER; 
             balloon.vx = (balloon.x - touch.clientX) * 0.5;
             score++;
             scoreEl.innerText = score;
             
-            // STOCHASTIC TRIGGER: Fires when score hits the randomly scheduled point
+            if (score === MILESTONES[0]) triggerMilestone("CITY REACHED");
+            if (score === MILESTONES[1]) triggerMilestone("PEAKS REACHED");
+            if (score === MILESTONES[2]) triggerMilestone("SPACE REACHED");
+            if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("FINAL FRONTIER: " + score);
+
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
                 let isSpace = score >= MILESTONES[2];
                 wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8);
                 wind.timer = isSpace ? 110 : 220; 
                 wind.maxTimer = wind.timer;
-                // Schedule the NEXT random wind point (12-20 points away)
                 wind.nextAt = score + 12 + Math.floor(Math.random()*8);
+                shakeTimer = 15; // Trigger screen shake
             }
 
             checkBiomeShift();
-            
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('balloonHighScore', highScore);
@@ -158,27 +210,22 @@
     function checkBiomeShift() {
         let b = 0; if (score >= MILESTONES[0]) b = 1; if (score >= MILESTONES[1]) b = 2; if (score >= MILESTONES[2]) b = 3;
         if (b !== lastBiome) {
-            lastBiome = b;
-            backdrops = []; decor = [];
-            if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
+            lastBiome = b; backdrops = []; decor = [];
             for(let i=0; i<12; i++) spawnItem(true); 
             document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"][b];
             titleEl.innerText = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"][b];
-            gravity = SACRED_GRAVITY[b];
+            gravity = GRAV_TIERS[b];
         }
     }
 
     function update() {
-        backdrops.forEach(b => b.x -= b.speed);
-        decor.forEach(d => d.x -= d.speed);
-        clouds.forEach(c => c.x -= c.speed);
-        
-        if (gameActive) {
-            // Wind Processing
+        if (gameState === 'PLAYING') {
+            backdrops.forEach(b => b.x -= b.speed);
+            decor.forEach(d => d.x -= d.speed);
+            clouds.forEach(c => c.x -= c.speed);
+            
             if (wind.timer > 0) {
-                balloon.vx += wind.force * 0.05;
-                wind.timer--;
-                wind.visualX += wind.force * 18;
+                balloon.vx += wind.force * 0.05; wind.timer--; wind.visualX += wind.force * 18;
                 if (wind.timer <= 0) wind.active = false;
             }
 
@@ -192,10 +239,6 @@
             birdSpawnTimer++;
             if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            shieldSpawnTimer++;
-            const sThreshold = Math.max(50, 250 - score * 10); 
-            if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
-
             let rightmost = 0;
             backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
             if (rightmost < width + 100 && score < MILESTONES[2]) spawnItem();
@@ -204,118 +247,55 @@
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
-                if (d < balloon.radius + 15) { if (hasShield) hasShield = false; obstacles.splice(i, 1); }
+                if (d < balloon.radius + 15) { if (hasShield) { hasShield = false; obstacles.splice(i, 1); } else { gameOver(); } }
                 if (o.x < -200 || o.x > width + 200) obstacles.splice(i, 1);
             });
-
-            if (shieldItem) {
-                shieldItem.y += 1.8;
-                let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
-                if (d < balloon.radius + 20) { hasShield = true; shieldItem = null; }
-                else if (shieldItem.y > height) shieldItem = null;
-            }
 
             if (balloon.y + balloon.radius > currentGroundY) {
                 balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5;
             }
+            if (shakeTimer > 0) shakeTimer--;
         }
         draw();
         requestAnimationFrame(update);
     }
 
     function draw() {
-        ctx.clearRect(0, 0, width, height);
-        
-        clouds.forEach(c => {
-            ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`;
-            ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill();
-        });
+        ctx.save();
+        if (shakeTimer > 0) ctx.translate(Math.random()*8-4, Math.random()*8-4);
 
-        if (score >= MILESTONES[0]) {
-            ctx.fillStyle = "white";
-            stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); });
-            ctx.globalAlpha = 1.0;
-        }
+        ctx.clearRect(0, 0, width, height);
+        clouds.forEach(c => { ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
+        if (score >= MILESTONES[0]) { ctx.fillStyle = "white"; stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); }); ctx.globalAlpha = 1.0; }
 
         backdrops.forEach(b => {
             ctx.fillStyle = (score >= MILESTONES[0]) ? "#111" : "#2d4d2d";
-            if (b.type === "hill") {
-                ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill();
-            } else if (b.type === "building") {
-                ctx.fillStyle = "#222"; ctx.fillRect(b.x, currentGroundY - b.h, b.w, b.h);
-                ctx.fillStyle = "#FFD700";
-                for(let r=0; r<6; r++) for(let c=0; c<2; c++) ctx.fillRect(b.x + 10 + c*25, currentGroundY - b.h + 20 + r*45, 10, 10);
-            } else if (b.type === "mountain") {
-                ctx.fillStyle = "#0a0a0a";
-                ctx.beginPath(); ctx.moveTo(b.x, currentGroundY); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w, currentGroundY); ctx.fill();
-                ctx.fillStyle = "white"; ctx.beginPath(); ctx.moveTo(b.x + b.w*0.4, currentGroundY - b.h*0.8); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w*0.6, currentGroundY - b.h*0.8); ctx.fill();
-            }
+            if (b.type === "hill") { ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill(); }
+            else if (b.type === "building") { ctx.fillStyle = "#222"; ctx.fillRect(b.x, currentGroundY - b.h, b.w, b.h); ctx.fillStyle = "#FFD700"; for(let r=0; r<6; r++) for(let c=0; c<2; c++) ctx.fillRect(b.x + 10 + c*25, currentGroundY - b.h + 20 + r*45, 10, 10); }
+            else if (b.type === "mountain") { ctx.fillStyle = "#0a0a0a"; ctx.beginPath(); ctx.moveTo(b.x, currentGroundY); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w, currentGroundY); ctx.fill(); ctx.fillStyle = "white"; ctx.beginPath(); ctx.moveTo(b.x + b.w*0.4, currentGroundY - b.h*0.8); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w*0.6, currentGroundY - b.h*0.8); ctx.fill(); }
         });
 
-        decor.forEach(d => {
-            ctx.fillStyle = "#1a331a";
-            ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h);
-            ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill();
-        });
+        decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
 
-        // --- STOCHASTIC FADE-SYNC WIND ---
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
-            let opacity = Math.min(0.7, wind.timer / 40); // Fade out
-            if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40; // Fade in
-
-            ctx.globalAlpha = opacity;
-            ctx.strokeStyle = isSpace ? "rgba(255, 60, 0, 0.9)" : "rgba(255, 255, 255, 0.6)";
-            ctx.lineWidth = isSpace ? 10 : 4;
+            let opacity = Math.min(0.7, wind.timer / 40); if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
+            ctx.globalAlpha = opacity; ctx.strokeStyle = isSpace ? "rgba(255, 60, 0, 0.9)" : "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = isSpace ? 10 : 4;
             if (isSpace) { ctx.shadowBlur = 25; ctx.shadowColor = "#FF0000"; }
-            
-            for(let i=0; i<8; i++) {
-                let y = (height * 0.1) + i * (height * 0.1);
-                let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150;
-                ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 120 : -120), y); ctx.stroke();
-            }
+            for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 120 : -120), y); ctx.stroke(); }
             ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
 
-        if (score >= MILESTONES[2]) {
-            ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15;
-            ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill();
-        }
+        if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
+        if (currentGroundY < height + 50) { ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a'); ctx.fillRect(0, currentGroundY, width, height); }
 
-        if (currentGroundY < height + 50) {
-            ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a');
-            ctx.fillRect(0, currentGroundY, width, height);
-        }
+        obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
 
-        obstacles.forEach(o => {
-            ctx.lineWidth = 5;
-            ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333";
-            if (o.type === "satellite") {
-                ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10);
-                ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
-            } else {
-                let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke();
-            }
-        });
-
-        if (shieldItem) {
-            ctx.fillStyle = score >= MILESTONES[2] ? "#FF00FF" : "#00FF7F";
-            ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill();
-        }
-        if (hasShield) {
-            ctx.strokeStyle = score >= MILESTONES[2] ? "#FF00FF" : "#00FF7F";
-            ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius+10, 0, Math.PI*2); ctx.stroke();
-        }
-
-        // --- STRING ---
-        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius);
-        ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
-
+        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
         if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
-        ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2);
-        ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+
+        ctx.restore();
     }
 
     init(); update();
