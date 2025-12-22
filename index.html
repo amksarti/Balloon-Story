@@ -5,47 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Balloon Game</title>
+    <title>Balloon Story</title>
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
             background: #87CEEB; transition: background 4s ease;
-            font-family: -apple-system, system-ui, sans-serif;
+            /* Modern, rounded, "fun" but professional font stack */
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             touch-action: none; width: 100vw; height: 100vh; position: fixed; 
         }
         canvas { display: block; position: absolute; top: 0; left: 0; }
+        
+        /* UI Elements */
         #ui {
             position: absolute; top: 8%; left: 0; width: 100%;
             text-align: center; pointer-events: none; color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3); z-index: 10;
         }
-        #title { font-size: 0.9rem; letter-spacing: 3px; font-weight: bold; text-transform: uppercase; }
+        #title { font-size: 1rem; letter-spacing: 4px; font-weight: 700; text-transform: uppercase; }
         #score-container { font-weight: 900; line-height: 1; margin-top: 5px;}
-        #current-score { font-size: 4rem; display: block; }
-        #best-score { font-size: 1rem; opacity: 0.7; margin-top: 5px; display: block; }
+        #current-score { font-size: 4.5rem; display: block; }
+        #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 5px; display: block; }
         
+        /* Exit Button for Infinite Bounce */
+        #menu-btn {
+            position: absolute; top: 5%; left: 5%;
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 8px 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.4);
+            font-size: 0.8rem; font-weight: bold; text-transform: uppercase;
+            pointer-events: auto; display: none; z-index: 25;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.5); color: white; z-index: 20; text-align: center;
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.45); color: white; z-index: 30; text-align: center;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
         .btn {
-            background: #FF5F5F; color: white; padding: 18px 50px; border-radius: 40px;
+            background: #4A90E2; color: white; padding: 18px 60px; border-radius: 40px;
             font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.2rem;
+            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.3rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+        .btn:active { transform: scale(0.95); background: #357ABD; }
+
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
-            color: #FFD700; font-weight: 900; font-size: 1.8rem; text-transform: uppercase;
-            letter-spacing: 5px; opacity: 0; transition: opacity 0.5s; z-index: 15;
+            color: #FFD700; font-weight: 900; font-size: 2rem; text-transform: uppercase;
+            letter-spacing: 6px; opacity: 0; transition: opacity 0.6s; z-index: 15;
         }
         .toggle-box {
-            margin-top: 20px; background: rgba(255,255,255,0.1);
-            padding: 10px 20px; border-radius: 20px; pointer-events: auto;
-            font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase;
+            margin-top: 25px; background: rgba(255,255,255,0.15);
+            padding: 12px 25px; border-radius: 25px; pointer-events: auto;
+            font-size: 1rem; letter-spacing: 1px; text-transform: uppercase;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        input[type="checkbox"] { transform: scale(1.4); margin-right: 12px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.5); margin-right: 15px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -57,9 +75,11 @@
         </div>
     </div>
 
+    <button id="menu-btn" onclick="gameOver(true)">Menu</button>
+
     <div id="start-overlay" class="overlay">
-        <h1 style="letter-spacing: 8px; font-size: 2.5rem; margin-bottom: 0;">BALLOON</h1>
-        <p style="opacity: 0.8; margin-top: 5px;">Tap to play</p>
+        <h1 style="letter-spacing: 10px; font-size: 2.8rem; margin: 0; font-weight: 900;">BALLOON STORY</h1>
+        <p style="opacity: 0.7; margin-top: 8px; font-weight: 500;">Tap the balloon to play</p>
         <div class="toggle-box">
             <label><input type="checkbox" id="god-toggle"> Infinite Bounce</label>
         </div>
@@ -67,12 +87,12 @@
     </div>
 
     <div id="gameover-overlay" class="overlay" style="display: none;">
-        <h1 style="letter-spacing: 5px; color: #FF5F5F; margin-bottom: 0;">GAME OVER</h1>
-        <p id="final-stats" style="margin: 15px 0; font-weight: bold;"></p>
+        <h1 style="letter-spacing: 6px; color: #FFFFFF; margin-bottom: 0; font-weight: 900;">GAME OVER</h1>
+        <p id="final-stats" style="margin: 20px 0; font-size: 1.1rem; opacity: 0.9;"></p>
         <button class="btn" onclick="resetToStart()">Play Again</button>
     </div>
 
-    <div id="milestone-pop">NEW BIOME</div>
+    <div id="milestone-pop">URBAN VOYAGER</div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -84,11 +104,13 @@
     const titleEl = document.getElementById('title');
     const milestonePop = document.getElementById('milestone-pop');
     const godToggle = document.getElementById('god-toggle');
+    const menuBtn = document.getElementById('menu-btn');
 
-    // --- LOCKED PHYSICS ---
+    // --- LOCKED SACRED PHYSICS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60]; 
+    const STAGE_NAMES = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
 
     let width, height, balloon, score, gameState, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [];
@@ -105,12 +127,13 @@
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = [];
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
-        shakeTimer = 0; wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12 + Math.floor(Math.random()*6), active: false };
+        shakeTimer = 0; wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*8), active: false };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
         bestEl.innerText = `Best: ${highScore}`;
-        titleEl.innerText = "Park Wanderer";
+        titleEl.innerText = STAGE_NAMES[0];
+        menuBtn.style.display = 'none';
 
         for(let i=0; i<15; i++) spawnItem(true); 
         for(let i=0; i<10; i++) spawnCloud(true);
@@ -120,6 +143,7 @@
     function startGame() {
         gameState = 'PLAYING';
         document.getElementById('start-overlay').style.display = 'none';
+        menuBtn.style.display = 'block';
     }
 
     function resetToStart() {
@@ -131,14 +155,15 @@
     function triggerMilestone(text) {
         milestonePop.innerText = text;
         milestonePop.style.opacity = 1;
-        setTimeout(() => milestonePop.style.opacity = 0, 2000);
+        setTimeout(() => milestonePop.style.opacity = 0, 2500);
     }
 
-    function gameOver() {
-        if (godToggle.checked) return;
+    function gameOver(manual = false) {
+        if (godToggle.checked && !manual) return;
         gameState = 'GAMEOVER';
+        menuBtn.style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Score: ${score} | Reached: ${titleEl.innerText}`;
+        document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`;
     }
 
     function spawnItem(randomX = false) {
@@ -175,23 +200,28 @@
         if (gameState !== 'PLAYING') return;
         const touch = e.touches[0];
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
-        if (dist < balloon.radius + 80) {
+        
+        if (dist < balloon.radius + 85) {
             balloon.vy = TAP_POWER; 
             balloon.vx = (balloon.x - touch.clientX) * 0.5;
             score++;
             scoreEl.innerText = score;
             
-            if (score === MILESTONES[0] || score === MILESTONES[1] || score === MILESTONES[2]) triggerMilestone("NEW BIOME");
-            if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("WAY UP THERE: " + score);
+            // Trigger Stage Names on Pop-up
+            if (score === MILESTONES[0]) triggerMilestone(STAGE_NAMES[1]);
+            if (score === MILESTONES[1]) triggerMilestone(STAGE_NAMES[2]);
+            if (score === MILESTONES[2]) triggerMilestone(STAGE_NAMES[3]);
+            if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("ORBIT: " + score);
 
+            // Stochastic Wind Engine
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
                 let isSpace = score >= MILESTONES[2];
-                wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8);
-                wind.timer = isSpace ? 110 : 220; 
+                wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.3 : 1.8);
+                wind.timer = isSpace ? 110 : 230; 
                 wind.maxTimer = wind.timer;
                 wind.nextAt = score + 12 + Math.floor(Math.random()*8);
-                shakeTimer = 15; 
+                shakeTimer = 18; 
             }
 
             checkBiomeShift();
@@ -209,7 +239,7 @@
             lastBiome = b; backdrops = []; decor = [];
             for(let i=0; i<12; i++) spawnItem(true); 
             document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"][b];
-            titleEl.innerText = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"][b];
+            titleEl.innerText = STAGE_NAMES[b];
             gravity = GRAV_TIERS[b];
         }
     }
@@ -258,11 +288,16 @@
 
     function draw() {
         ctx.save();
-        if (shakeTimer > 0) ctx.translate(Math.random()*8-4, Math.random()*8-4);
+        if (shakeTimer > 0) ctx.translate(Math.random()*10-5, Math.random()*10-5);
 
         ctx.clearRect(0, 0, width, height);
         clouds.forEach(c => { ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
-        if (score >= MILESTONES[0]) { ctx.fillStyle = "white"; stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); }); ctx.globalAlpha = 1.0; }
+        
+        if (score >= MILESTONES[0]) { 
+            ctx.fillStyle = "white"; 
+            stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); }); 
+            ctx.globalAlpha = 1.0; 
+        }
 
         backdrops.forEach(b => {
             ctx.fillStyle = (score >= MILESTONES[0]) ? "#111" : "#2d4d2d";
@@ -276,8 +311,8 @@
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
             let opacity = Math.min(0.7, wind.timer / 40); if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
-            ctx.globalAlpha = opacity; ctx.strokeStyle = isSpace ? "rgba(255, 60, 0, 0.9)" : "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = isSpace ? 10 : 4;
-            if (isSpace) { ctx.shadowBlur = 25; ctx.shadowColor = "#FF0000"; }
+            ctx.globalAlpha = opacity; ctx.strokeStyle = isSpace ? "rgba(255, 80, 0, 0.85)" : "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = isSpace ? 10 : 4;
+            if (isSpace) { ctx.shadowBlur = 25; ctx.shadowColor = "#FF4500"; }
             for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 120 : -120), y); ctx.stroke(); }
             ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
@@ -287,6 +322,7 @@
 
         obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
 
+        // String & Balloon
         ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
         if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
         ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
