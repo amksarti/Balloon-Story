@@ -27,7 +27,6 @@
         #current-score { font-size: 4.8rem; font-family: 'Fredoka One', cursive; display: block; }
         #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 2px; display: block; }
         
-        /* Menu button moved to bottom left to avoid text overlap */
         #menu-btn {
             position: absolute; bottom: 5%; left: 5%;
             background: rgba(255,255,255,0.2); color: white;
@@ -35,6 +34,7 @@
             font-size: 0.8rem; font-weight: 900; text-transform: uppercase;
             pointer-events: auto; display: none; z-index: 25;
             backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            cursor: pointer;
         }
 
         .overlay {
@@ -59,10 +59,7 @@
             box-shadow: 0 5px 0 #1B4F72, 0 10px 20px rgba(0,0,0,0.2);
             transition: all 0.1s; cursor: pointer;
         }
-        .btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #1B4F72, 0 5px 10px rgba(0,0,0,0.2);
-        }
+        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #1B4F72, 0 5px 10px rgba(0,0,0,0.2); }
 
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
@@ -78,7 +75,7 @@
             font-size: 1rem; font-weight: 700; text-transform: uppercase;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        input[type="checkbox"] { transform: scale(1.6); margin-right: 12px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.6); margin-right: 12px; vertical-align: middle; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -90,15 +87,15 @@
         </div>
     </div>
 
-    <button id="menu-btn" onclick="endGameManually()">Menu</button>
+    <button id="menu-btn" onclick="endGameManually()">Menu (M)</button>
 
     <div id="start-overlay" class="overlay">
         <h1 class="game-title">BALLOON STORY</h1>
-        <p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to fly!</p>
+        <p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to play</p>
         <div class="toggle-box">
-            <label><input type="checkbox" id="god-toggle"> Infinite Bounce</label>
+            <label><input type="checkbox" id="god-toggle"> Invincible Mode</label>
         </div>
-        <button class="btn" onclick="startGame()">Play</button>
+        <button class="btn" onclick="startGame()">Play (Space)</button>
     </div>
 
     <div id="gameover-overlay" class="overlay" style="display: none;">
@@ -228,14 +225,14 @@
         shieldItem = { x: 50 + Math.random() * (width - 100), y: -50, vy: 1.8 };
     }
 
-    window.addEventListener('touchstart', (e) => {
+    // --- INPUT HANDLING ---
+    function handleInput(posX, posY) {
         if (gameState !== 'PLAYING') return;
-        const touch = e.touches[0];
-        const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
+        const dist = Math.sqrt((posX - balloon.x)**2 + (posY - balloon.y)**2);
         
         if (dist < balloon.radius + 85) {
             balloon.vy = TAP_POWER; 
-            balloon.vx = (balloon.x - touch.clientX) * 0.5;
+            balloon.vx = (balloon.x - posX) * 0.5;
             score++;
             scoreEl.innerText = score;
             
@@ -261,7 +258,20 @@
                 bestEl.innerText = `Best: ${highScore}`;
             }
         }
+    }
+
+    window.addEventListener('touchstart', (e) => {
+        handleInput(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: false });
+
+    window.addEventListener('mousedown', (e) => {
+        handleInput(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && gameState === 'START') startGame();
+        if (e.code === 'KeyM' && gameState === 'PLAYING') endGameManually();
+    });
 
     function checkBiomeShift() {
         let b = 0; if (score >= MILESTONES[0]) b = 1; if (score >= MILESTONES[1]) b = 2; if (score >= MILESTONES[2]) b = 3; if (score >= MILESTONES[3]) b = 4;
