@@ -118,18 +118,21 @@
     const godToggle = document.getElementById('god-toggle');
     const menuBtn = document.getElementById('menu-btn');
 
+    // --- PHYSICS CONSTANTS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60, 100]; 
     const STAGE_NAMES = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut", "Exosphere"];
 
     let width, height, balloon, score, gameState, gravity, currentGroundY;
-    let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null;
-    let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
+    let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null, fragments = [];
+    let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0, popTimer = 0;
     
     let wind = {
         active: false,
+        warmingUp: false,
         timer: 0,
+        warmupTimer: 45,
         maxTimer: 200,
         force: 0,
         visualX: 0,
@@ -146,20 +149,18 @@
         currentGroundY = height * 0.88;
         gameState = 'START';
         
-        // HARD RESET PHYSICS
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
-        
-        backdrops = []; clouds = []; stars = []; obstacles = []; decor = []; shieldItem = null;
+        backdrops = []; clouds = []; stars = []; obstacles = []; decor = []; fragments = []; shieldItem = null;
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
-        hasShield = false; shakeTimer = 0; 
+        hasShield = false; shakeTimer = 0; popTimer = 0;
         
-        // HARD RESET WIND ENGINE
+        // Full Variable Reset
         wind.active = false;
+        wind.warmingUp = false;
         wind.timer = 0;
-        wind.force = 0;
         wind.pointsSinceLast = 0;
         wind.lastScoreProcessed = 0;
-        wind.triggerDistance = 8 + Math.floor(Math.random() * 8);
+        wind.triggerDistance = 8 + Math.floor(Math.random() * 6);
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -196,8 +197,26 @@
 
     function gameOver() {
         if (godToggle.checked) return;
-        gameState = 'GAMEOVER';
+        
+        // Trigger Fragment Pop
+        gameState = 'POPPING';
+        popTimer = 40; 
+        shakeTimer = 15;
         menuBtn.style.display = 'none';
+        
+        for(let i=0; i<8; i++) {
+            fragments.push({
+                x: balloon.x,
+                y: balloon.y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                r: 4 + Math.random() * 6
+            });
+        }
+    }
+
+    function showGameOverUI() {
+        gameState = 'GAMEOVER';
         document.getElementById('gameover-overlay').style.display = 'flex';
         document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`;
     }
@@ -249,7 +268,7 @@
         const dist = Math.sqrt((posX - balloon.x)**2 + (posY - balloon.y)**2);
         if (dist < balloon.radius + 85) {
             balloon.vy = TAP_POWER; 
-            balloon.vx = (balloon.x - posX) * 0.5;
+            balloon.vx = (balloon.x - posX) * 0.45;
             score++;
             scoreEl.innerText = score;
             
@@ -292,25 +311,45 @@
     }
 
     function update() {
+        // --- TRANSITION UPDATE ---
+        if (gameState === 'POPPING') {
+            popTimer--;
+            fragments.forEach(f => {
+                f.x += f.vx; f.y += f.vy;
+                f.vy += 0.2; // Small gravity on fragments
+            });
+            if (popTimer <= 0) showGameOverUI();
+        }
+
         if (gameState === 'PLAYING') {
             backdrops.forEach(b => b.x -= b.speed);
             decor.forEach(d => d.x -= d.speed);
             clouds.forEach(c => c.x -= c.speed);
             
-            if (!wind.active) {
+            // --- WIND ENGINE ---
+            if (!wind.active && !wind.warmingUp) {
                 if (score > wind.lastScoreProcessed) {
                     wind.pointsSinceLast++;
                     wind.lastScoreProcessed = score;
                 }
                 if (wind.pointsSinceLast >= wind.triggerDistance) {
+                    wind.warmingUp = true;
+                    wind.timer = wind.warmupTimer;
+                    let isSpace = score >= MILESTONES[2];
+                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8);
+                }
+            } else if (wind.warmingUp) {
+                shakeTimer = 2;
+                wind.timer--;
+                wind.visualX += wind.force * 5;
+                if (wind.timer <= 0) {
+                    wind.warmingUp = false;
                     wind.active = true;
                     let isSpace = score >= MILESTONES[2];
-                    wind.maxTimer = isSpace ? 110 : 230;
-                    wind.timer = wind.maxTimer;
-                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8); 
-                    shakeTimer = 18; 
+                    wind.timer = isSpace ? 110 : 230;
+                    shakeTimer = 20;
                 }
-            } else {
+            } else if (wind.active) {
                 balloon.vx += wind.force * 0.05; 
                 wind.timer--; 
                 wind.visualX += wind.force * 18;
@@ -321,11 +360,11 @@
                 }
             }
 
-            // ENHANCED DAMPENING: Clean up residual vx when wind is inactive
+            // --- PHYSICS ---
             balloon.vy += gravity; 
             balloon.y += balloon.vy; 
             balloon.x += balloon.vx; 
-            balloon.vx *= wind.active ? 0.98 : 0.95; 
+            balloon.vx *= (wind.active || wind.warmingUp) ? 0.98 : 0.92;
 
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
@@ -336,7 +375,7 @@
             if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
             shieldSpawnTimer++;
-            const sThreshold = Math.max(40, 400 - score * 15);
+            const sThreshold = hasShield ? 600 : Math.max(80, 400 - score * 12);
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             let rightmost = 0;
@@ -364,8 +403,8 @@
             if (balloon.y + balloon.radius > currentGroundY) {
                 balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5;
             }
-            if (shakeTimer > 0) shakeTimer--;
         }
+        if (shakeTimer > 0) shakeTimer--;
         draw();
         requestAnimationFrame(update);
     }
@@ -387,18 +426,17 @@
 
         decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
 
-        if (wind.active && wind.timer > 0) {
+        if ((wind.active || wind.warmingUp) && wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
-            ctx.globalAlpha = 0.6;
+            ctx.globalAlpha = wind.warmingUp ? 0.25 : 0.6;
             ctx.strokeStyle = isSpace ? "rgba(255, 100, 0, 1)" : "rgba(255, 255, 255, 1)"; 
             ctx.lineWidth = isSpace ? 10 : 5;
-            if (isSpace) { ctx.shadowBlur = 20; ctx.shadowColor = "#FF4500"; }
             for(let i=0; i<8; i++) { 
                 let y = (height * 0.1) + i * (height * 0.1); 
                 let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; 
                 ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); 
             }
-            ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
+            ctx.globalAlpha = 1.0;
         }
 
         if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
@@ -414,15 +452,26 @@
             ctx.shadowBlur = 0;
         }
 
-        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
-        if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
-        ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+        // --- DRAW FRAGMENTS ---
+        if (gameState === 'POPPING') {
+            ctx.fillStyle = balloon.color;
+            fragments.forEach(f => {
+                ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill();
+            });
+        }
 
-        if (hasShield) {
-            let isSpace = score >= MILESTONES[2];
-            ctx.strokeStyle = isSpace ? "#BF5AF2" : "#48C9B0";
-            ctx.lineWidth = 6;
-            ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius + 12, 0, Math.PI*2); ctx.stroke();
+        // --- DRAW BALLOON ---
+        if (gameState === 'PLAYING') {
+            ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
+            if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
+            ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+
+            if (hasShield) {
+                let isSpace = score >= MILESTONES[2];
+                ctx.strokeStyle = isSpace ? "#BF5AF2" : "#48C9B0";
+                ctx.lineWidth = 6;
+                ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius + 12, 0, Math.PI*2); ctx.stroke();
+            }
         }
         ctx.restore();
     }
