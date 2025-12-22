@@ -105,7 +105,8 @@
         if (dist < balloon.radius + 85) {
             balloon.vy = TAP_POWER; balloon.vx = (balloon.x - posX) * 0.45;
             score++; scoreEl.innerText = score;
-            streak++; framesSinceLastTap = 0; squishTimer = 10;
+            streak++; framesSinceLastTap = 0; 
+            squishTimer = 12; // INCREASED INITIAL SQUISH
             if (streak >= 12 && !isOnFire) { isOnFire = true; triggerMilestone("ENFLAMED"); }
             if (!godToggle.checked && score > highScore) { highScore = score; localStorage.setItem('balloonHighScore', highScore); bestEl.innerText = `Best: ${highScore}`; }
         }
@@ -143,7 +144,7 @@
 
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
-                let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
+                let d = Math.sqrt((balloon.x-o.x)**2 + (posY = o.y, balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { 
                     if (isOnFire) { isOnFire = false; streak = 0; shakeTimer = 25; obstacles.splice(i, 1); }
                     else if (hasShield) { hasShield = false; streak = 0; shakeTimer = 15; obstacles.splice(i, 1); } 
@@ -182,12 +183,31 @@
         obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
         if (shieldItem) { let isp = score >= MILESTONES[2]; ctx.fillStyle = isp ? "#BF5AF2" : "#48C9B0"; ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
         if (gameState === 'POPPING') { ctx.fillStyle = balloon.color; fragments.forEach(f => { ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill(); }); }
+        
         if (gameState === 'PLAYING') {
-            ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 35); ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = 2; ctx.stroke();
-            ctx.save(); ctx.translate(balloon.x, balloon.y);
-            if (squishTimer > 0) { let sY = 1 - (Math.sin(squishTimer * 0.4) * 0.05); let sX = 1 + (Math.sin(squishTimer * 0.4) * 0.02); ctx.scale(sX, sY); }
-            if (isOnFire) { ctx.shadowBlur = 20; ctx.shadowColor = "#FFA500"; ctx.fillStyle = "#FF8C00"; } else { ctx.fillStyle = balloon.color; }
-            ctx.beginPath(); ctx.arc(0, 0, balloon.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+            // String is drawn outside the scale block so it doesn't distort
+            ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); 
+            ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 35);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+            ctx.save(); 
+            ctx.translate(balloon.x, balloon.y);
+            
+            // SQUISH LOGIC RE-CALCULATED
+            if (squishTimer > 0) { 
+                let intensity = (squishTimer / 12) * 0.15; // LINEAR DECAY, MAX 15%
+                let sY = 1 - intensity;
+                let sX = 1 + intensity * 0.5;
+                ctx.scale(sX, sY); 
+            }
+
+            if (isOnFire) { ctx.shadowBlur = 20; ctx.shadowColor = "#FFA500"; ctx.fillStyle = "#FF8C00"; } 
+            else { ctx.fillStyle = balloon.color; }
+            
+            ctx.beginPath(); ctx.arc(0, 0, balloon.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
             if (hasShield) { let isp = score >= MILESTONES[2]; ctx.strokeStyle = isp ? "#BF5AF2" : "#48C9B0"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius + 12, 0, Math.PI*2); ctx.stroke(); }
         }
         ctx.restore();
