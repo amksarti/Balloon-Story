@@ -58,7 +58,7 @@
 
         backdrops = []; clouds = []; stars = []; obstacles = []; 
         score = 0; lastBiome = 0; 
-        gravity = 0.22; // Starting slightly heavier to lead into that "Peak" feel
+        gravity = 0.22; // THE SWEET SPOT
         hasShield = false; shieldItem = null;
         birdSpawnTimer = 0; shieldSpawnTimer = 0;
         
@@ -76,9 +76,9 @@
         else if (score >= 20 && score < 40) type = "mountain";
         else if (score >= 40) return; 
 
-        // SCALE REVERTED: Based on your feedback from earlier successful builds
-        let itemW = type === "mountain" ? 200 + Math.random()*150 : 60 + Math.random()*40;
-        let itemH = type === "mountain" ? 100 + Math.random()*120 : 180 + Math.random()*220;
+        // SCALE REFINED: Hills are now smaller/distant
+        let itemW = type === "hill" ? 120 + Math.random()*60 : (type === "mountain" ? 200 + Math.random()*150 : 60 + Math.random()*40);
+        let itemH = type === "hill" ? 40 + Math.random()*30 : (type === "mountain" ? 100 + Math.random()*120 : 180 + Math.random()*220);
 
         backdrops.push({
             x: randomX ? Math.random() * (width + 400) : width + 300,
@@ -94,13 +94,13 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -60 : width + 60;
         let type = score >= 40 ? "satellite" : (score >= 20 ? "eagle" : "bird");
-        let speed = (3.0 + (score / 12)) * (side < 0 ? 1 : -1);
+        let speed = (3.2 + (score / 10)) * (side < 0 ? 1 : -1);
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
     function spawnShield() {
         if (hasShield || shieldItem) return;
-        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 2.2 }; // Faster falling shield
+        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 2.2 };
     }
 
     window.addEventListener('touchstart', (e) => {
@@ -109,7 +109,7 @@
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
         if (dist < balloon.radius + 75) {
             if (!gameActive) gameActive = true;
-            balloon.vy = -8.5; // Unified tap power
+            balloon.vy = -8.5; // UNIFIED TAP POWER
             balloon.vx = (balloon.x - touch.clientX) * 0.45;
             score++; scoreEl.innerText = score;
             checkBiomeShift();
@@ -123,7 +123,7 @@
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<10; i++) spawnItem(true); 
             const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
-            const gravs = [0.22, 0.21, 0.20, 0.18]; // Smoother transition into the Peak physics you like
+            const gravs = [0.22, 0.21, 0.20, 0.18]; 
             document.body.style.background = colors[b];
             titleEl.innerText = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"][b];
             gravity = gravs[b];
@@ -137,7 +137,6 @@
         if (gameActive) {
             balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
 
-            // Absolute Wall Protection
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
 
@@ -146,9 +145,9 @@
             birdSpawnTimer++;
             if (birdSpawnTimer > Math.max(25, 110 - score * 2)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            // RADICAL SHIELD DENSITY FIX
             shieldSpawnTimer++;
-            const sThreshold = Math.max(50, 250 - score * 10); 
+            // HIGH-DENSITY SHIELDS
+            const sThreshold = Math.max(40, 200 - score * 10); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             let rightmost = 0;
@@ -211,12 +210,19 @@
         }
 
         obstacles.forEach(o => {
+            // THICKER BIRDS: LineWidth 5 and solid body
+            ctx.lineWidth = 5;
             ctx.strokeStyle = (score >= 10) ? "white" : "#333";
             if (o.type === "satellite") {
                 ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10);
                 ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
             } else {
-                let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke();
+                let w = Math.sin(o.wing)*10; 
+                // Small body circle
+                ctx.fillStyle = (score >= 10) ? "white" : "#333";
+                ctx.beginPath(); ctx.arc(o.x, o.y, 4, 0, Math.PI*2); ctx.fill();
+                // Thick wings
+                ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke();
             }
         });
 
