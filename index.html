@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Balloon Story - Wind Sync</title>
+    <title>Balloon Story</title>
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Invincible | Fast Switch</div>
+        <div id="test-tag">Testing Mode: Invincible | Final Pacing</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
@@ -46,18 +46,15 @@
     const bestEl = document.getElementById('best-score');
     const titleEl = document.getElementById('title');
 
-    // --- SACRED PHYSICS LOCKED ---
-    const PARK_GRAVITY = 0.24;
-    const CITY_GRAVITY = 0.22;
-    const PEAK_GRAVITY = 0.20;
-    const SPACE_GRAVITY = 0.18;
+    // --- SACRED PHYSICS ANCHORS ---
+    const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
-    const BIOME_INTERVAL = 5; // TESTING MODE: Switch every 5
+    const MILESTONES = [15, 35, 60]; // Points to reach City, Peaks, Space
 
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
-    let wind = { force: 0, timer: 0, visualX: 0 };
+    let wind = { force: 0, timer: 0, visualX: 0, nextAt: 12 };
     
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -68,8 +65,9 @@
 
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; 
-        score = 0; lastBiome = 0; gravity = PARK_GRAVITY; 
-        hasShield = false; shieldItem = null; wind = { force: 0, timer: 0, visualX: 0 };
+        score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
+        hasShield = false; shieldItem = null; 
+        wind = { force: 0, timer: 0, visualX: 0, nextAt: 12 + Math.floor(Math.random()*6) };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -83,9 +81,9 @@
 
     function spawnItem(randomX = false) {
         let type = "hill";
-        if (score >= BIOME_INTERVAL && score < BIOME_INTERVAL*2) type = "building";
-        else if (score >= BIOME_INTERVAL*2 && score < BIOME_INTERVAL*3) type = "mountain";
-        else if (score >= BIOME_INTERVAL*3) return; 
+        if (score >= MILESTONES[0] && score < MILESTONES[1]) type = "building";
+        else if (score >= MILESTONES[1] && score < MILESTONES[2]) type = "mountain";
+        else if (score >= MILESTONES[2]) return; 
 
         let itemW = type === "hill" ? 180 + Math.random()*100 : (type === "mountain" ? 300 + Math.random()*400 : 70 + Math.random()*60);
         let itemH = type === "hill" ? 30 + Math.random()*25 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
@@ -102,8 +100,8 @@
 
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
-        let type = score >= BIOME_INTERVAL*3 ? "satellite" : (score >= BIOME_INTERVAL*2 ? "eagle" : "bird");
-        let speed = (side < 0 ? 1 : -1) * (2.5 + (score/20));
+        let type = score >= MILESTONES[2] ? "satellite" : (score >= MILESTONES[1] ? "eagle" : "bird");
+        let speed = (side < 0 ? 1 : -1) * (2.8 + (score/35));
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
@@ -123,11 +121,12 @@
             score++;
             scoreEl.innerText = score;
             
-            // WIND TRIGGER (Fast for testing)
-            if (score > 0 && score % 10 === 0) {
-                wind.force = (Math.random() > 0.5 ? 1 : -1) * 1.5;
-                wind.timer = 180; 
-                wind.visualX = 0;
+            // STOCHASTIC WIND TRIGGER
+            if (score === wind.nextAt) {
+                let isSpace = score >= MILESTONES[2];
+                wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 2.8 : 1.6);
+                wind.timer = isSpace ? 90 : 180; // Space flares are shorter but violent
+                wind.nextAt = score + 12 + Math.floor(Math.random()*8);
             }
 
             checkBiomeShift();
@@ -142,9 +141,9 @@
 
     function checkBiomeShift() {
         let b = 0;
-        if (score >= BIOME_INTERVAL) b = 1;
-        if (score >= BIOME_INTERVAL*2) b = 2;
-        if (score >= BIOME_INTERVAL*3) b = 3;
+        if (score >= MILESTONES[0]) b = 1;
+        if (score >= MILESTONES[1]) b = 2;
+        if (score >= MILESTONES[2]) b = 3;
 
         if (b !== lastBiome) {
             lastBiome = b;
@@ -152,13 +151,12 @@
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<12; i++) spawnItem(true); 
             
-            const gravs = [PARK_GRAVITY, CITY_GRAVITY, PEAK_GRAVITY, SPACE_GRAVITY];
             const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
             const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
             
             document.body.style.background = colors[b];
             titleEl.innerText = titles[b];
-            gravity = gravs[b];
+            gravity = GRAV_TIERS[b];
         }
     }
 
@@ -170,7 +168,6 @@
             if (wind.timer > 0) {
                 balloon.vx += wind.force * 0.05;
                 wind.timer--;
-                // Visual sync: travel in the direction of force
                 wind.visualX += wind.force * 15;
             }
 
@@ -179,18 +176,18 @@
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
 
-            if (score >= BIOME_INTERVAL*3 && currentGroundY < height * 0.94) currentGroundY += 3;
+            if (score >= MILESTONES[2] && currentGroundY < height * 0.94) currentGroundY += 3;
             
             birdSpawnTimer++;
             if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
             shieldSpawnTimer++;
-            const sThreshold = Math.max(60, 300 - score * 10); 
+            const sThreshold = Math.max(50, 250 - score * 10); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             let rightmost = 0;
             backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
-            if (rightmost < width + 100 && score < BIOME_INTERVAL*3) spawnItem();
+            if (rightmost < width + 100 && score < MILESTONES[2]) spawnItem();
 
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
@@ -216,14 +213,14 @@
 
     function draw() {
         ctx.clearRect(0, 0, width, height);
-        if (score >= BIOME_INTERVAL) {
+        if (score >= MILESTONES[0]) {
             ctx.fillStyle = "white";
             stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); });
             ctx.globalAlpha = 1.0;
         }
 
         backdrops.forEach(b => {
-            ctx.fillStyle = (score >= BIOME_INTERVAL) ? "#111" : "#2d4d2d";
+            ctx.fillStyle = (score >= MILESTONES[0]) ? "#111" : "#2d4d2d";
             if (b.type === "hill") {
                 ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill();
             } else if (b.type === "building") {
@@ -237,50 +234,34 @@
             }
         });
 
-        // --- WIND & SOLAR FLARE LOGIC (Directional Sync) ---
         if (wind.timer > 0) {
-            let windColor = "rgba(255, 255, 255, 0.4)";
-            let windWidth = 2;
-            ctx.shadowBlur = 0;
-
-            if (score >= BIOME_INTERVAL * 3) {
-                windColor = "rgba(255, 100, 0, 0.8)"; 
-                windWidth = 5; 
-                ctx.shadowBlur = 15; 
-                ctx.shadowColor = "#FF4500";
-            }
-
-            ctx.strokeStyle = windColor;
-            ctx.lineWidth = windWidth;
+            let isSpace = score >= MILESTONES[2];
+            ctx.strokeStyle = isSpace ? "rgba(255, 100, 0, 0.8)" : "rgba(255, 255, 255, 0.4)";
+            ctx.lineWidth = isSpace ? 5 : 2;
+            if (isSpace) { ctx.shadowBlur = 15; ctx.shadowColor = "#FF4500"; }
             
-            // Loop directional lines
             for(let i=0; i<6; i++) {
                 let y = (height * 0.2) + i * (height * 0.12);
                 let xStart = (wind.visualX + (i * 120)) % (width + 200) - 100;
-                let length = 80;
-                
-                ctx.beginPath(); 
-                ctx.moveTo(xStart, y); 
-                ctx.lineTo(xStart + (wind.force > 0 ? length : -length), y); 
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 80 : -80), y); ctx.stroke();
             }
             ctx.shadowBlur = 0;
         }
 
-        if (score >= BIOME_INTERVAL*3) {
+        if (score >= MILESTONES[2]) {
             ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15;
             ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke();
             ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill();
         }
 
         if (currentGroundY < height + 50) {
-            ctx.fillStyle = score < BIOME_INTERVAL ? '#4CAF50' : (score < BIOME_INTERVAL*2 ? '#444' : '#0a0a0a');
+            ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a');
             ctx.fillRect(0, currentGroundY, width, height);
         }
 
         obstacles.forEach(o => {
             ctx.lineWidth = 5;
-            ctx.strokeStyle = (score >= BIOME_INTERVAL) ? "white" : "#333";
+            ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333";
             if (o.type === "satellite") {
                 ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10);
                 ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
@@ -291,11 +272,11 @@
         });
 
         if (shieldItem) {
-            ctx.fillStyle = score >= BIOME_INTERVAL*3 ? "#FF00FF" : "#00FF7F";
+            ctx.fillStyle = score >= MILESTONES[2] ? "#FF00FF" : "#00FF7F";
             ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill();
         }
         if (hasShield) {
-            ctx.strokeStyle = score >= BIOME_INTERVAL*3 ? "#FF00FF" : "#00FF7F";
+            ctx.strokeStyle = score >= MILESTONES[2] ? "#FF00FF" : "#00FF7F";
             ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius+10, 0, Math.PI*2); ctx.stroke();
         }
 
