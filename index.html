@@ -20,65 +20,65 @@
         #ui {
             position: absolute; top: 8%; left: 0; width: 100%;
             text-align: center; pointer-events: none; color: white;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
         }
-        #title { font-size: 1.2rem; letter-spacing: 3px; font-weight: 900; text-transform: uppercase; }
-        #score-container { line-height: 1; margin-top: 5px;}
-        #current-score { font-size: 5rem; font-family: 'Fredoka One', cursive; display: block; }
-        #best-score { font-size: 1.2rem; opacity: 0.9; margin-top: 5px; display: block; }
+        #title { font-size: 1.1rem; letter-spacing: 2px; font-weight: 900; text-transform: uppercase; opacity: 0.9; }
+        #score-container { line-height: 1; margin-top: 2px;}
+        #current-score { font-size: 4.8rem; font-family: 'Fredoka One', cursive; display: block; }
+        #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 2px; display: block; }
         
+        /* Menu button moved to bottom left to avoid text overlap */
         #menu-btn {
-            position: absolute; top: 5%; left: 5%;
-            background: rgba(255,255,255,0.25); color: white;
-            padding: 12px 20px; border-radius: 50px; border: 2px solid rgba(255,255,255,0.3);
-            font-size: 0.9rem; font-weight: 900; text-transform: uppercase;
+            position: absolute; bottom: 5%; left: 5%;
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 10px 18px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.8rem; font-weight: 900; text-transform: uppercase;
             pointer-events: auto; display: none; z-index: 25;
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
 
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+            background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);
             color: white; z-index: 30; text-align: center;
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
         
         .game-title {
             font-family: 'Fredoka One', cursive;
-            font-size: 3.5rem; letter-spacing: 2px;
-            margin: 0; text-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            font-size: 3.2rem; letter-spacing: 1px;
+            margin: 0; text-shadow: 0 6px 12px rgba(0,0,0,0.3);
         }
 
         .btn {
             background: linear-gradient(180deg, #5DADE2 0%, #2E86C1 100%);
-            color: white; padding: 20px 70px; border-radius: 50px;
-            font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 30px; pointer-events: auto; border: none; font-size: 1.5rem;
-            box-shadow: 0 8px 0 #1B4F72, 0 15px 25px rgba(0,0,0,0.3);
+            color: white; padding: 18px 60px; border-radius: 50px;
+            font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.4rem;
+            box-shadow: 0 5px 0 #1B4F72, 0 10px 20px rgba(0,0,0,0.2);
             transition: all 0.1s; cursor: pointer;
         }
         .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 4px 0 #1B4F72, 0 10px 15px rgba(0,0,0,0.3);
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #1B4F72, 0 5px 10px rgba(0,0,0,0.2);
         }
 
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
-            color: #FFD700; font-family: 'Fredoka One', cursive; font-size: 2.5rem;
-            text-transform: uppercase; letter-spacing: 4px; opacity: 0; 
+            color: #FFD700; font-family: 'Fredoka One', cursive; font-size: 2.2rem;
+            text-transform: uppercase; letter-spacing: 3px; opacity: 0; 
             transition: opacity 0.6s, transform 0.6s; z-index: 15;
             pointer-events: none; transform: scale(0.8);
         }
         
         .toggle-box {
-            margin-top: 30px; background: rgba(255,255,255,0.1);
-            padding: 15px 30px; border-radius: 100px; pointer-events: auto;
-            font-size: 1.1rem; font-weight: 700; text-transform: uppercase;
-            border: 2px solid rgba(255,255,255,0.2);
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+            margin-top: 25px; background: rgba(255,255,255,0.08);
+            padding: 12px 25px; border-radius: 100px; pointer-events: auto;
+            font-size: 1rem; font-weight: 700; text-transform: uppercase;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        input[type="checkbox"] { transform: scale(1.8); margin-right: 15px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.6); margin-right: 12px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -94,7 +94,7 @@
 
     <div id="start-overlay" class="overlay">
         <h1 class="game-title">BALLOON STORY</h1>
-        <p style="opacity: 0.8; font-size: 1.2rem; margin-top: 10px;">Tap to fly!</p>
+        <p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to fly!</p>
         <div class="toggle-box">
             <label><input type="checkbox" id="god-toggle"> Infinite Bounce</label>
         </div>
@@ -102,8 +102,8 @@
     </div>
 
     <div id="gameover-overlay" class="overlay" style="display: none;">
-        <h1 class="game-title" style="color: #F1948A;">GAME OVER</h1>
-        <p id="final-stats" style="margin: 20px 0; font-size: 1.3rem; font-weight: 700;"></p>
+        <h1 class="game-title" style="color: #FADBD8;">GAME OVER</h1>
+        <p id="final-stats" style="margin: 15px 0; font-size: 1.2rem; font-weight: 700;"></p>
         <button class="btn" onclick="resetToStart()">Try Again</button>
     </div>
 
@@ -264,12 +264,7 @@
     }, { passive: false });
 
     function checkBiomeShift() {
-        let b = 0; 
-        if (score >= MILESTONES[0]) b = 1; 
-        if (score >= MILESTONES[1]) b = 2; 
-        if (score >= MILESTONES[2]) b = 3;
-        if (score >= MILESTONES[3]) b = 4;
-
+        let b = 0; if (score >= MILESTONES[0]) b = 1; if (score >= MILESTONES[1]) b = 2; if (score >= MILESTONES[2]) b = 3; if (score >= MILESTONES[3]) b = 4;
         if (b !== lastBiome) {
             lastBiome = b; backdrops = []; decor = [];
             for(let i=0; i<12; i++) spawnItem(true); 
@@ -300,7 +295,6 @@
             birdSpawnTimer++;
             if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            // Ramping Shield Frequency Verified
             shieldSpawnTimer++;
             const sThreshold = Math.max(40, 400 - score * 15);
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
