@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Balloon Story</title>
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background: #87CEEB;
+            transition: background 3s ease;
+            font-family: -apple-system, sans-serif;
+            touch-action: none; width: 100vw; height: 100vh;
+            position: fixed; 
+        }
+        canvas { display: block; position: absolute; top: 0; left: 0; }
+        #ui {
+            position: absolute; top: 10%; left: 0; width: 100%;
+            text-align: center; pointer-events: none; color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); z-index: 10;
+        }
+        #title { font-size: 0.9rem; letter-spacing: 3px; font-weight: bold; text-transform: uppercase; }
+        #score-container { font-weight: 900; line-height: 1; margin-top: 5px;}
+        #current-score { font-size: 4rem; display: block; }
+        #test-tag { font-size: 0.7rem; color: #FFD700; text-transform: uppercase; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="test-tag">Testing Mode: Invincible</div>
+        <div id="title">Park Wanderer</div>
+        <div id="score-container"><span id="current-score">0</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('current-score');
+    const titleEl = document.getElementById('title');
+
+    let width, height, balloon, score, gameActive, gravity, currentGroundY;
+    let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
+    let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
+    
+    function init() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        currentGroundY = height * 0.88;
+
+        balloon = { 
+            x: width / 2, y: height / 2, 
+            radius: Math.min(width, height) * 0.08, 
+            vx: 0, vy: 0, color: '#FF5F5F' 
+        };
+
+        backdrops = []; clouds = []; stars = []; obstacles = []; 
+        score = 0; lastBiome = 0; 
+        gravity = 0.24; // SIGNIFICANTLY HEAVIER
+        hasShield = false; shieldItem = null;
+        birdSpawnTimer = 0; shieldSpawnTimer = 0;
+        
+        document.body.style.background = "#87CEEB";
+        scoreEl.innerText = "0";
+        titleEl.innerText = "Park Wanderer";
+
+        // Initial Density
+        for(let i=0; i<10; i++) spawnItem(true); 
+        for(let i=0; i<5; i++) spawnCloud(true);
+        for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
+    }
+
+    function spawnItem(randomX = false) {
+        let type = "hill";
+        if (score >= 10 && score < 20) type = "building";
+        else if (score >= 20 && score < 40) type = "mountain";
+        else if (score >= 40) return; 
+
+        let itemW = type === "mountain" ? 300 + Math.random()*400 : 70 + Math.random()*60;
+        let itemH = type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350;
+
+        backdrops.push({
+            x: randomX ? Math.random() * (width + 400) : width + 300,
+            type: type,
+            w: itemW,
+            h: itemH,
+            speed: type === "mountain" ? 1.2 : 1.6
+        });
+    }
+
+    function spawnCloud(randomX = false) {
+        clouds.push({ x: randomX ? Math.random() * width : width + 150, y: Math.random() * (height * 0.5), size: 30 + Math.random() * 50, speed: 0.4 + Math.random() * 0.5 });
+    }
+
+    function spawnObstacle() {
+        const side = Math.random() > 0.5 ? -50 : width + 50;
+        let type = score >= 40 ? "satellite" : (score >= 20 ? "eagle" : "bird");
+        obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: (side < 0 ? 1 : -1) * (1.3 + (score/20)), type: type, wing: 0 });
+    }
+
+    function spawnShield() {
+        if (hasShield || shieldItem) return;
+        shieldItem = { x: 50 + Math.random()*(width-100), y: -50, vy: 1.8 };
+    }
+
+    window.addEventListener('touchstart', (e) => {
+        if (!balloon) return;
+        const touch = e.touches[0];
+        const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
+        if (dist < balloon.radius + 75) {
+            if (!gameActive) gameActive = true;
+            balloon.vy = -8.8; // STRONGER TAP FOR HEAVIER GRAVITY
+            balloon.vx = (balloon.x - touch.clientX) * 0.5;
+            score++;
+            scoreEl.innerText = score;
+            checkBiomeShift();
+        }
+    }, { passive: false });
+
+    function checkBiomeShift() {
+        let b = 0;
+        if (score >= 10 && score < 20) b = 1;
+        else if (score >= 20 && score < 40) b = 2;
+        else if (score >= 40) b = 3;
+
+        if (b !== lastBiome) {
+            lastBiome = b;
+            backdrops = []; 
+            if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
+            for(let i=0; i<10; i++) spawnItem(true); 
+            
+            const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
+            const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
+            const gravs = [0.24, 0.22, 0.20, 0.18]; 
+            
+            document.body.style.background = colors[b];
+            titleEl.innerText = titles[b];
+            gravity = gravs[b];
+        }
+    }
+
+    function update() {
+        backdrops.forEach(b => b.x -= b.speed);
+        clouds.forEach(c => c.x -= c.speed);
+        
+        if (gameActive) {
+            balloon.vy += gravity;
+            balloon.y += balloon.vy; 
+            balloon.x += balloon.vx; 
+            balloon.vx *= 0.98;
+
+            if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
+            if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
+
+            if (score >= 40 && currentGroundY < height * 0.94) currentGroundY += 3;
+            
+            birdSpawnTimer++;
+            if (birdSpawnTimer > Math.max(35, 140 - score*2.8)) { spawnObstacle(); birdSpawnTimer = 0; }
+
+            shieldSpawnTimer++;
+            // INCREASED SHIELD FREQUENCY AND SCALING
+            const sThreshold = Math.max(180, 650 - score * 12); 
+            if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
+
+            // CRITICAL: MOUNTAIN REFILL LOGIC
+            // Checks if there is enough backdrop coverage on the right edge
+            let rightmost = 0;
+            backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
+            if (rightmost < width + 200 && score < 40) spawnItem();
+
+            obstacles.forEach((o, i) => {
+                o.x += o.vx; o.wing += 0.15;
+                let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
+                if (d < balloon.radius + 15) { if (hasShield) hasShield = false; obstacles.splice(i, 1); }
+                if (o.x < -150 || o.x > width + 150) obstacles.splice(i, 1);
+            });
+
+            if (shieldItem) {
+                shieldItem.y += 1.8;
+                let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
+                if (d < balloon.radius + 20) { hasShield = true; shieldItem = null; }
+                else if (shieldItem.y > height) shieldItem = null;
+            }
+
+            // GOD MODE BOUNCE
+            if (balloon.y + balloon.radius > currentGroundY) {
+                balloon.y = currentGroundY - balloon.radius;
+                balloon.vy = -Math.abs(balloon.vy) * 0.5;
+            }
+        }
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        if (score >= 20) {
+            ctx.fillStyle = "white";
+            stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); });
+            ctx.globalAlpha = 1.0;
+        }
+
+        backdrops.forEach(b => {
+            ctx.fillStyle = (score >= 10) ? "#111" : "#2d4d2d";
+            if (b.type === "hill") {
+                ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill();
+            } else if (b.type === "building") {
+                ctx.fillStyle = "#222"; ctx.fillRect(b.x, currentGroundY - b.h, b.w, b.h);
+                ctx.fillStyle = "#FFD700";
+                for(let r=0; r<6; r++) for(let c=0; c<2; c++) ctx.fillRect(b.x + 10 + c*25, currentGroundY - b.h + 20 + r*45, 10, 10);
+            } else if (b.type === "mountain") {
+                ctx.fillStyle = "#0a0a0a";
+                ctx.beginPath(); ctx.moveTo(b.x, currentGroundY); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w, currentGroundY); ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.beginPath(); ctx.moveTo(b.x + b.w*0.4, currentGroundY - b.h*0.8); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w*0.6, currentGroundY - b.h*0.8); ctx.fill();
+            }
+        });
+
+        if (score >= 40) {
+            ctx.strokeStyle = "rgba(0, 162, 255, 0.8)";
+            ctx.lineWidth = 15;
+            ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill();
+        }
+
+        if (currentGroundY < height + 50) {
+            ctx.fillStyle = score < 10 ? '#4CAF50' : (score < 20 ? '#444' : '#0a0a0a');
+            ctx.fillRect(0, currentGroundY, width, height - currentGroundY + 100);
+        }
+
+        obstacles.forEach(o => {
+            // ALL BIRDS WHITE AFTER SCORE 10
+            ctx.strokeStyle = (score >= 10) ? "white" : "#333";
+            if (o.type === "satellite") {
+                ctx.strokeStyle = "#00F2FF";
+                ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10);
+                ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
+            } else {
+                let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke();
+            }
+        });
+
+        if (shieldItem) {
+            ctx.fillStyle = score >= 40 ? "#FF00FF" : "#00FF7F";
+            ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill();
+        }
+        if (hasShield) {
+            ctx.strokeStyle = score >= 40 ? "#FF00FF" : "#00FF7F";
+            ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius+10, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // STRING
+        ctx.beginPath();
+        ctx.moveTo(balloon.x, balloon.y + balloon.radius);
+        ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
+        ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2);
+        ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    init();
+    update();
+</script>
+</body>
+</html>
