@@ -128,7 +128,7 @@
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
     
-    // --- NEW ODOMETER WIND LOGIC ---
+    // --- REBUILT WIND ENGINE ---
     let wind = {
         active: false,
         timer: 0,
@@ -137,7 +137,7 @@
         visualX: 0,
         pointsSinceLast: 0,
         triggerDistance: 10,
-        lastScoreCounted: 0
+        lastScoreProcessed: 0
     };
 
     let highScore = localStorage.getItem('balloonHighScore') || 0;
@@ -153,11 +153,11 @@
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shakeTimer = 0; 
         
-        // Reset Odometer
+        // Setup Odometer
         wind.active = false;
         wind.timer = 0;
         wind.pointsSinceLast = 0;
-        wind.lastScoreCounted = 0;
+        wind.lastScoreProcessed = 0;
         wind.triggerDistance = 8 + Math.floor(Math.random() * 6);
         
         document.body.style.background = "#87CEEB";
@@ -246,7 +246,6 @@
     function handleInput(posX, posY) {
         if (gameState !== 'PLAYING') return;
         const dist = Math.sqrt((posX - balloon.x)**2 + (posY - balloon.y)**2);
-        
         if (dist < balloon.radius + 85) {
             balloon.vy = TAP_POWER; 
             balloon.vx = (balloon.x - posX) * 0.5;
@@ -297,24 +296,29 @@
             decor.forEach(d => d.x -= d.speed);
             clouds.forEach(c => c.x -= c.speed);
             
-            // --- CORE WIND ODEMETER SYSTEM ---
+            // --- UNIFIED WIND LOGIC ---
             if (!wind.active) {
-                if (score > wind.lastScoreCounted) {
+                // Count distance
+                if (score > wind.lastScoreProcessed) {
                     wind.pointsSinceLast++;
-                    wind.lastScoreCounted = score;
+                    wind.lastScoreProcessed = score;
                 }
+                // Trigger Check
                 if (wind.pointsSinceLast >= wind.triggerDistance) {
                     wind.active = true;
                     let isSpace = score >= MILESTONES[2];
-                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.3 : 1.8);
-                    wind.timer = isSpace ? 110 : 230; 
-                    wind.maxTimer = wind.timer;
-                    shakeTimer = 18; 
+                    wind.maxTimer = isSpace ? 110 : 230;
+                    wind.timer = wind.maxTimer;
+                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 4.5 : 2.5); // INCREASED FORCE
+                    shakeTimer = 25; // Hit hard
                 }
             } else {
-                balloon.vx += wind.force * 0.05; 
+                // Apply Push
+                balloon.vx += wind.force * 0.06; // INCREASED PUSH
                 wind.timer--; 
-                wind.visualX += wind.force * 18;
+                wind.visualX += wind.force * 20;
+
+                // End Gust
                 if (wind.timer <= 0) {
                     wind.active = false;
                     wind.pointsSinceLast = 0;
@@ -369,7 +373,7 @@
 
     function draw() {
         ctx.save();
-        if (shakeTimer > 0) ctx.translate(Math.random()*10-5, Math.random()*10-5);
+        if (shakeTimer > 0) ctx.translate(Math.random()*12-6, Math.random()*12-6);
         ctx.clearRect(0, 0, width, height);
 
         clouds.forEach(c => { ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
@@ -384,12 +388,19 @@
 
         decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
 
-        if (wind.timer > 0) {
+        // --- MASTER SYNCED WIND RENDER ---
+        if (wind.active && wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
-            let opacity = Math.min(0.7, wind.timer / 40); if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
-            ctx.globalAlpha = opacity; ctx.strokeStyle = isSpace ? "rgba(255, 80, 0, 0.85)" : "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = isSpace ? 10 : 4;
+            // Opacity is now simple and persistent
+            ctx.globalAlpha = 0.6;
+            ctx.strokeStyle = isSpace ? "rgba(255, 100, 0, 1)" : "rgba(255, 255, 255, 1)"; 
+            ctx.lineWidth = isSpace ? 12 : 5;
             if (isSpace) { ctx.shadowBlur = 25; ctx.shadowColor = "#FF4500"; }
-            for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 120 : -120), y); ctx.stroke(); }
+            for(let i=0; i<8; i++) { 
+                let y = (height * 0.1) + i * (height * 0.1); 
+                let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; 
+                ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); 
+            }
             ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
 
