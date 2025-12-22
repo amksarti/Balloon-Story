@@ -41,6 +41,13 @@
     const scoreEl = document.getElementById('current-score');
     const titleEl = document.getElementById('title');
 
+    // --- SACRED PHYSICS CONSTANTS ---
+    const PARK_GRAVITY = 0.24;
+    const CITY_GRAVITY = 0.22;
+    const PEAK_GRAVITY = 0.20;
+    const SPACE_GRAVITY = 0.18;
+    const TAP_POWER = -8.8;
+
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
@@ -58,14 +65,15 @@
 
         backdrops = []; clouds = []; stars = []; obstacles = []; 
         score = 0; lastBiome = 0; 
-        gravity = 0.24; // LOCKED: Park Gravity
+        gravity = PARK_GRAVITY; 
         hasShield = false; shieldItem = null;
         birdSpawnTimer = 0; shieldSpawnTimer = 0;
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0"; titleEl.innerText = "Park Wanderer";
 
-        for(let i=0; i<10; i++) spawnItem(true); 
+        // Dense initial spawn for hills to ensure overlap immediately
+        for(let i=0; i<15; i++) spawnItem(true); 
         for(let i=0; i<5; i++) spawnCloud(true);
         for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
@@ -76,12 +84,12 @@
         else if (score >= 20 && score < 40) type = "mountain";
         else if (score >= 40) return; 
 
-        // HILL HEIGHT LOCKED: 30-50px
-        let itemW = type === "mountain" ? 300 + Math.random()*400 : 70 + Math.random()*60;
-        let itemH = type === "hill" ? 30 + Math.random()*20 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
+        // Overlapping Hills logic
+        let itemW = type === "hill" ? 180 + Math.random()*100 : (type === "mountain" ? 300 + Math.random()*400 : 70 + Math.random()*60);
+        let itemH = type === "hill" ? 30 + Math.random()*25 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
 
         backdrops.push({
-            x: randomX ? Math.random() * (width + 400) : width + 300,
+            x: randomX ? Math.random() * (width + 600) : width + 300,
             type: type, w: itemW, h: itemH,
             speed: type === "mountain" ? 1.2 : 1.6
         });
@@ -94,7 +102,8 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
         let type = score >= 40 ? "satellite" : (score >= 20 ? "eagle" : "bird");
-        let speed = (side < 0 ? 1 : -1) * (1.2 + (score/40));
+        // FIXED VELOCITY: Minimum 2.5 to ensure it never matches background speed (1.6)
+        let speed = (side < 0 ? 1 : -1) * (2.5 + (score/30));
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
@@ -109,9 +118,10 @@
         const dist = Math.sqrt((touch.clientX - balloon.x)**2 + (touch.clientY - balloon.y)**2);
         if (dist < balloon.radius + 75) {
             if (!gameActive) gameActive = true;
-            balloon.vy = -8.8; // LOCKED: Tap Power
+            balloon.vy = TAP_POWER; 
             balloon.vx = (balloon.x - touch.clientX) * 0.5;
-            score++; scoreEl.innerText = score;
+            score++;
+            scoreEl.innerText = score;
             checkBiomeShift();
         }
     }, { passive: false });
@@ -121,10 +131,9 @@
         if (b !== lastBiome) {
             lastBiome = b; backdrops = []; 
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
-            for(let i=0; i<10; i++) spawnItem(true); 
+            for(let i=0; i<12; i++) spawnItem(true); 
             
-            // LOCKED: Gravity Step-down
-            const gravs = [0.24, 0.22, 0.20, 0.18];
+            const gravs = [PARK_GRAVITY, CITY_GRAVITY, PEAK_GRAVITY, SPACE_GRAVITY];
             const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
             const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
             
@@ -147,16 +156,17 @@
             if (score >= 40 && currentGroundY < height * 0.94) currentGroundY += 3;
             
             birdSpawnTimer++;
-            if (birdSpawnTimer > Math.max(60, 180 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
+            if (birdSpawnTimer > Math.max(35, 140 - score*2.8)) { spawnObstacle(); birdSpawnTimer = 0; }
 
-            // SHIELD DENSITY INCREASED
             shieldSpawnTimer++;
-            const sThreshold = Math.max(50, 250 - score * 12); 
+            const sThreshold = Math.max(60, 300 - score * 10); 
             if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
+            // DENSER REFILL: Hills overlap check
             let rightmost = 0;
             backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
-            if (rightmost < width + 200 && score < 40) spawnItem();
+            // Reduced gap to 100px ensures items (especially hills) overlap
+            if (rightmost < width + 100 && score < 40) spawnItem();
 
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
@@ -172,7 +182,6 @@
                 else if (shieldItem.y > height) shieldItem = null;
             }
 
-            // God Mode Bounce
             if (balloon.y + balloon.radius > currentGroundY) {
                 balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5;
             }
@@ -216,7 +225,7 @@
         }
 
         obstacles.forEach(o => {
-            // HINGE REMOVED: Only wing strokes
+            // Birds turn WHITE at score 10 for visibility
             ctx.lineWidth = 5;
             ctx.strokeStyle = (score >= 10) ? "white" : "#333";
             if (o.type === "satellite") {
@@ -224,6 +233,7 @@
                 ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
             } else {
                 let w = Math.sin(o.wing)*10; 
+                // CLEAN WINGS ONLY - NO HINGE
                 ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke();
             }
         });
@@ -237,10 +247,13 @@
             ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius+10, 0, Math.PI*2); ctx.stroke();
         }
 
-        // String
-        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius);
+        // STRING
+        ctx.beginPath();
+        ctx.moveTo(balloon.x, balloon.y + balloon.radius);
         ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
 
         if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
         ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2);
