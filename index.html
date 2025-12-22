@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Balloon Story</title>
+    <title>Balloon Story - Wind Sync</title>
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Invincible</div>
+        <div id="test-tag">Testing Mode: Invincible | Fast Switch</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
@@ -52,12 +52,12 @@
     const PEAK_GRAVITY = 0.20;
     const SPACE_GRAVITY = 0.18;
     const TAP_POWER = -8.8;
-    const BIOME_INTERVAL = 25;
+    const BIOME_INTERVAL = 5; // TESTING MODE: Switch every 5
 
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
-    let wind = { force: 0, timer: 0 };
+    let wind = { force: 0, timer: 0, visualX: 0 };
     
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -69,7 +69,7 @@
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; 
         score = 0; lastBiome = 0; gravity = PARK_GRAVITY; 
-        hasShield = false; shieldItem = null; wind = { force: 0, timer: 0 };
+        hasShield = false; shieldItem = null; wind = { force: 0, timer: 0, visualX: 0 };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -103,7 +103,7 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
         let type = score >= BIOME_INTERVAL*3 ? "satellite" : (score >= BIOME_INTERVAL*2 ? "eagle" : "bird");
-        let speed = (side < 0 ? 1 : -1) * (2.5 + (score/40));
+        let speed = (side < 0 ? 1 : -1) * (2.5 + (score/20));
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
@@ -123,9 +123,11 @@
             score++;
             scoreEl.innerText = score;
             
-            if (score > 0 && score % 15 === 0) {
+            // WIND TRIGGER (Fast for testing)
+            if (score > 0 && score % 10 === 0) {
                 wind.force = (Math.random() > 0.5 ? 1 : -1) * 1.5;
                 wind.timer = 180; 
+                wind.visualX = 0;
             }
 
             checkBiomeShift();
@@ -168,6 +170,8 @@
             if (wind.timer > 0) {
                 balloon.vx += wind.force * 0.05;
                 wind.timer--;
+                // Visual sync: travel in the direction of force
+                wind.visualX += wind.force * 15;
             }
 
             balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
@@ -233,29 +237,34 @@
             }
         });
 
-        // --- WIND & SOLAR FLARE LOGIC ---
+        // --- WIND & SOLAR FLARE LOGIC (Directional Sync) ---
         if (wind.timer > 0) {
-            let windColor = "rgba(255, 255, 255, 0.3)";
+            let windColor = "rgba(255, 255, 255, 0.4)";
             let windWidth = 2;
             ctx.shadowBlur = 0;
 
-            // If in space (Astronaut biome), change to Solar Flare style
             if (score >= BIOME_INTERVAL * 3) {
-                windColor = "rgba(255, 80, 0, 0.6)"; // Fiery orange-red
-                windWidth = 4; // Thicker
-                ctx.shadowBlur = 15; // Glow effect
+                windColor = "rgba(255, 100, 0, 0.8)"; 
+                windWidth = 5; 
+                ctx.shadowBlur = 15; 
                 ctx.shadowColor = "#FF4500";
             }
 
             ctx.strokeStyle = windColor;
             ctx.lineWidth = windWidth;
-            const dir = wind.force > 0 ? 1 : -1;
-            for(let i=0; i<5; i++) {
-                let y = 150 + i * 100;
-                let x = (Date.now() / 2) % width;
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (dir * 50), y); ctx.stroke();
+            
+            // Loop directional lines
+            for(let i=0; i<6; i++) {
+                let y = (height * 0.2) + i * (height * 0.12);
+                let xStart = (wind.visualX + (i * 120)) % (width + 200) - 100;
+                let length = 80;
+                
+                ctx.beginPath(); 
+                ctx.moveTo(xStart, y); 
+                ctx.lineTo(xStart + (wind.force > 0 ? length : -length), y); 
+                ctx.stroke();
             }
-            ctx.shadowBlur = 0; // Reset shadow so it doesn't affect other elements
+            ctx.shadowBlur = 0;
         }
 
         if (score >= BIOME_INTERVAL*3) {
