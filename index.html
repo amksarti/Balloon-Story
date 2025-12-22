@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Invincible | Wind Fixed</div>
+        <div id="test-tag">Testing Mode: Invincible | Pro Pacing</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
@@ -46,17 +46,16 @@
     const bestEl = document.getElementById('best-score');
     const titleEl = document.getElementById('title');
 
-    // --- SACRED PHYSICS ANCHORS ---
+    // --- SACRED PHYSICS CONSTANTS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
-    const MILESTONES = [15, 35, 60]; 
+    const MILESTONES = [15, 35, 60]; // Balanced Variable Progression
 
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
     
-    // Wind Management
-    let wind = { force: 0, timer: 0, visualX: 0, nextAt: 8, active: false };
+    let wind = { force: 0, timer: 0, visualX: 0, nextAt: 10, active: false };
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -69,7 +68,6 @@
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shieldItem = null; 
         
-        // Schedule first wind
         wind = { force: 0, timer: 0, visualX: 0, nextAt: 10 + Math.floor(Math.random()*5), active: false };
         
         document.body.style.background = "#87CEEB";
@@ -124,7 +122,7 @@
             score++;
             scoreEl.innerText = score;
             
-            // Trigger Wind Check
+            // Unpredictable Wind Triggering
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
                 let isSpace = score >= MILESTONES[2];
@@ -159,7 +157,7 @@
             const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
             document.body.style.background = colors[b];
             titleEl.innerText = titles[b];
-            gravity = GRAV_TIERS[b];
+            gravity = GRAV_TIERS[b]; // Step-down Gravity
         }
     }
 
@@ -238,7 +236,6 @@
             }
         });
 
-        // WIND / SOLAR FLARE VISUALS
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
             ctx.strokeStyle = isSpace ? "rgba(255, 120, 0, 0.7)" : "rgba(255, 255, 255, 0.4)";
@@ -247,7 +244,6 @@
             
             for(let i=0; i<6; i++) {
                 let y = (height * 0.2) + i * (height * 0.12);
-                // Correct direction sync: lines move with the force
                 let xStart = (wind.visualX + (i * 120)) % (width + 200) - 100;
                 ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 90 : -90), y); ctx.stroke();
             }
@@ -286,7 +282,6 @@
             ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius+10, 0, Math.PI*2); ctx.stroke();
         }
 
-        // STRING
         ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius);
         ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
