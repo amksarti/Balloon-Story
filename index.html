@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Balloon Story</title>
+    <title>Balloon Game</title>
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background: #87CEEB;
-            transition: background 4s ease;
-            font-family: -apple-system, sans-serif;
-            touch-action: none; width: 100vw; height: 100vh;
-            position: fixed; 
+            background: #87CEEB; transition: background 4s ease;
+            font-family: -apple-system, system-ui, sans-serif;
+            touch-action: none; width: 100vw; height: 100vh; position: fixed; 
         }
         canvas { display: block; position: absolute; top: 0; left: 0; }
         #ui {
@@ -26,28 +24,28 @@
         #current-score { font-size: 4rem; display: block; }
         #best-score { font-size: 1rem; opacity: 0.7; margin-top: 5px; display: block; }
         
-        /* Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.4); color: white; z-index: 20; text-align: center;
-            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.5); color: white; z-index: 20; text-align: center;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
         .btn {
-            background: white; color: black; padding: 15px 40px; border-radius: 30px;
-            font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 20px; pointer-events: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: #FF5F5F; color: white; padding: 18px 50px; border-radius: 40px;
+            font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.2rem;
         }
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
-            color: #FFD700; font-weight: bold; font-size: 1.5rem; text-transform: uppercase;
-            letter-spacing: 4px; opacity: 0; transition: opacity 0.5s; z-index: 15;
+            color: #FFD700; font-weight: 900; font-size: 1.8rem; text-transform: uppercase;
+            letter-spacing: 5px; opacity: 0; transition: opacity 0.5s; z-index: 15;
         }
-        #toggle-container {
-            position: absolute; bottom: 5%; width: 100%; text-align: center; z-index: 30;
-            color: white; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase;
+        .toggle-box {
+            margin-top: 20px; background: rgba(255,255,255,0.1);
+            padding: 10px 20px; border-radius: 20px; pointer-events: auto;
+            font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase;
         }
-        input[type="checkbox"] { transform: scale(1.2); margin-right: 8px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.4); margin-right: 12px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -60,22 +58,21 @@
     </div>
 
     <div id="start-overlay" class="overlay">
-        <h1 style="letter-spacing: 5px;">BALLOON STORY</h1>
-        <p style="opacity: 0.8;">Tap the balloon to begin your ascent</p>
-        <div class="btn" onclick="startGame()">Launch Mission</div>
+        <h1 style="letter-spacing: 8px; font-size: 2.5rem; margin-bottom: 0;">BALLOON</h1>
+        <p style="opacity: 0.8; margin-top: 5px;">Tap to play</p>
+        <div class="toggle-box">
+            <label><input type="checkbox" id="god-toggle"> Infinite Bounce</label>
+        </div>
+        <button class="btn" onclick="startGame()">Play</button>
     </div>
 
     <div id="gameover-overlay" class="overlay" style="display: none;">
-        <h2 style="letter-spacing: 3px; color: #FF5F5F;">MISSION FAILED</h2>
-        <p id="final-stats" style="margin: 10px 0;"></p>
-        <div class="btn" onclick="init()">Try Again</div>
+        <h1 style="letter-spacing: 5px; color: #FF5F5F; margin-bottom: 0;">GAME OVER</h1>
+        <p id="final-stats" style="margin: 15px 0; font-weight: bold;"></p>
+        <button class="btn" onclick="resetToStart()">Play Again</button>
     </div>
 
-    <div id="milestone-pop">SPACE REACHED</div>
-
-    <div id="toggle-container">
-        <label><input type="checkbox" id="god-toggle" checked> Invincible Mode</label>
-    </div>
+    <div id="milestone-pop">NEW BIOME</div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -88,16 +85,15 @@
     const milestonePop = document.getElementById('milestone-pop');
     const godToggle = document.getElementById('god-toggle');
 
-    // --- SACRED PHYSICS ---
+    // --- LOCKED PHYSICS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60]; 
 
     let width, height, balloon, score, gameState, gravity, currentGroundY;
-    let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null, decor = [];
-    let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
+    let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [];
+    let lastBiome = 0, birdSpawnTimer = 0, shakeTimer = 0;
     let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12, active: false };
-    let shakeTimer = 0;
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -106,14 +102,10 @@
         currentGroundY = height * 0.88;
         gameState = 'START';
         
-        document.getElementById('start-overlay').style.display = 'flex';
-        document.getElementById('gameover-overlay').style.display = 'none';
-
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = [];
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
-        hasShield = false; shieldItem = null; shakeTimer = 0;
-        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12 + Math.floor(Math.random()*6), active: false };
+        shakeTimer = 0; wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12 + Math.floor(Math.random()*6), active: false };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -130,6 +122,12 @@
         document.getElementById('start-overlay').style.display = 'none';
     }
 
+    function resetToStart() {
+        document.getElementById('gameover-overlay').style.display = 'none';
+        init();
+        document.getElementById('start-overlay').style.display = 'flex';
+    }
+
     function triggerMilestone(text) {
         milestonePop.innerText = text;
         milestonePop.style.opacity = 1;
@@ -140,7 +138,7 @@
         if (godToggle.checked) return;
         gameState = 'GAMEOVER';
         document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Altitude: ${score} | Reached: ${titleEl.innerText}`;
+        document.getElementById('final-stats').innerText = `Score: ${score} | Reached: ${titleEl.innerText}`;
     }
 
     function spawnItem(randomX = false) {
@@ -183,10 +181,8 @@
             score++;
             scoreEl.innerText = score;
             
-            if (score === MILESTONES[0]) triggerMilestone("CITY REACHED");
-            if (score === MILESTONES[1]) triggerMilestone("PEAKS REACHED");
-            if (score === MILESTONES[2]) triggerMilestone("SPACE REACHED");
-            if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("FINAL FRONTIER: " + score);
+            if (score === MILESTONES[0] || score === MILESTONES[1] || score === MILESTONES[2]) triggerMilestone("NEW BIOME");
+            if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("WAY UP THERE: " + score);
 
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
@@ -195,7 +191,7 @@
                 wind.timer = isSpace ? 110 : 220; 
                 wind.maxTimer = wind.timer;
                 wind.nextAt = score + 12 + Math.floor(Math.random()*8);
-                shakeTimer = 15; // Trigger screen shake
+                shakeTimer = 15; 
             }
 
             checkBiomeShift();
@@ -247,7 +243,7 @@
             obstacles.forEach((o, i) => {
                 o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
-                if (d < balloon.radius + 15) { if (hasShield) { hasShield = false; obstacles.splice(i, 1); } else { gameOver(); } }
+                if (d < balloon.radius + 15) { gameOver(); }
                 if (o.x < -200 || o.x > width + 200) obstacles.splice(i, 1);
             });
 
