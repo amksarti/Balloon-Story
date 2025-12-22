@@ -118,7 +118,6 @@
     const godToggle = document.getElementById('god-toggle');
     const menuBtn = document.getElementById('menu-btn');
 
-    // --- LOCKED SACRED PHYSICS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60, 100]; 
@@ -128,7 +127,6 @@
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
     
-    // --- UNIFIED WIND ENGINE ---
     let wind = {
         active: false,
         timer: 0,
@@ -148,13 +146,17 @@
         currentGroundY = height * 0.88;
         gameState = 'START';
         
+        // HARD RESET PHYSICS
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
+        
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = []; shieldItem = null;
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shakeTimer = 0; 
         
+        // HARD RESET WIND ENGINE
         wind.active = false;
         wind.timer = 0;
+        wind.force = 0;
         wind.pointsSinceLast = 0;
         wind.lastScoreProcessed = 0;
         wind.triggerDistance = 8 + Math.floor(Math.random() * 8);
@@ -295,7 +297,6 @@
             decor.forEach(d => d.x -= d.speed);
             clouds.forEach(c => c.x -= c.speed);
             
-            // --- BALANCED WIND LOGIC ---
             if (!wind.active) {
                 if (score > wind.lastScoreProcessed) {
                     wind.pointsSinceLast++;
@@ -306,7 +307,6 @@
                     let isSpace = score >= MILESTONES[2];
                     wind.maxTimer = isSpace ? 110 : 230;
                     wind.timer = wind.maxTimer;
-                    // RECALIBRATED FORCES
                     wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8); 
                     shakeTimer = 18; 
                 }
@@ -321,7 +321,11 @@
                 }
             }
 
-            balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
+            // ENHANCED DAMPENING: Clean up residual vx when wind is inactive
+            balloon.vy += gravity; 
+            balloon.y += balloon.vy; 
+            balloon.x += balloon.vx; 
+            balloon.vx *= wind.active ? 0.98 : 0.95; 
 
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
