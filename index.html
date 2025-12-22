@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="ui">
-        <div id="test-tag">Testing Mode: Invincible | Pro Pacing</div>
+        <div id="test-tag">Testing Mode: Invincible | Wind Opacity Synced</div>
         <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
@@ -46,16 +46,17 @@
     const bestEl = document.getElementById('best-score');
     const titleEl = document.getElementById('title');
 
-    // --- SACRED PHYSICS CONSTANTS ---
+    // --- SACRED PHYSICS ANCHORS (LOCKED) ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18];
     const TAP_POWER = -8.8;
-    const MILESTONES = [15, 35, 60]; // Balanced Variable Progression
+    const MILESTONES = [15, 35, 60]; 
 
     let width, height, balloon, score, gameActive, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0;
     
-    let wind = { force: 0, timer: 0, visualX: 0, nextAt: 10, active: false };
+    // Wind Management
+    let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10, active: false };
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -68,7 +69,7 @@
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shieldItem = null; 
         
-        wind = { force: 0, timer: 0, visualX: 0, nextAt: 10 + Math.floor(Math.random()*5), active: false };
+        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*5), active: false };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -122,12 +123,12 @@
             score++;
             scoreEl.innerText = score;
             
-            // Unpredictable Wind Triggering
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
                 let isSpace = score >= MILESTONES[2];
                 wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 2.8 : 1.6);
                 wind.timer = isSpace ? 100 : 200; 
+                wind.maxTimer = wind.timer;
                 wind.nextAt = score + 12 + Math.floor(Math.random()*8);
             }
 
@@ -153,11 +154,9 @@
             if (b === 3) obstacles = obstacles.filter(o => o.type === "satellite");
             for(let i=0; i<12; i++) spawnItem(true); 
             
-            const colors = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"];
-            const titles = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"];
-            document.body.style.background = colors[b];
-            titleEl.innerText = titles[b];
-            gravity = GRAV_TIERS[b]; // Step-down Gravity
+            document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A"][b];
+            titleEl.innerText = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut"][b];
+            gravity = GRAV_TIERS[b];
         }
     }
 
@@ -236,8 +235,14 @@
             }
         });
 
+        // --- IMPROVED WIND SYNC ---
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
+            // Fade logic: opacity is linked to current timer / maxTimer
+            let opacity = Math.min(1, wind.timer / 40); // Rapid fade out at the very end
+            if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40; // Fade in
+
+            ctx.globalAlpha = opacity;
             ctx.strokeStyle = isSpace ? "rgba(255, 120, 0, 0.7)" : "rgba(255, 255, 255, 0.4)";
             ctx.lineWidth = isSpace ? 6 : 2;
             if (isSpace) { ctx.shadowBlur = 20; ctx.shadowColor = "#FF4500"; }
@@ -248,6 +253,7 @@
                 ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 90 : -90), y); ctx.stroke();
             }
             ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
         }
 
         if (score >= MILESTONES[2]) {
