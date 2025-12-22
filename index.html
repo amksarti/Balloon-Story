@@ -8,104 +8,29 @@
     <title>Balloon Story</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@900&display=swap');
-
-        body {
-            margin: 0; padding: 0; overflow: hidden;
-            background: #87CEEB; transition: background 4s ease;
-            font-family: 'Nunito', sans-serif;
-            touch-action: none; width: 100vw; height: 100vh; position: fixed; 
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background: #87CEEB; transition: background 4s ease; font-family: 'Nunito', sans-serif; touch-action: none; width: 100vw; height: 100vh; position: fixed; }
         canvas { display: block; position: absolute; top: 0; left: 0; }
-        
-        #ui {
-            position: absolute; top: 8%; left: 0; width: 100%;
-            text-align: center; pointer-events: none; color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
-        }
+        #ui { position: absolute; top: 8%; left: 0; width: 100%; text-align: center; pointer-events: none; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; }
         #title { font-size: 1.1rem; letter-spacing: 2px; font-weight: 900; text-transform: uppercase; opacity: 0.9; }
         #score-container { line-height: 1; margin-top: 2px;}
         #current-score { font-size: 4.8rem; font-family: 'Fredoka One', cursive; display: block; }
         #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 2px; display: block; }
-        
-        #menu-btn {
-            position: absolute; bottom: 10%; left: 5%;
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 10px 18px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.3);
-            font-size: 0.8rem; font-weight: 900; text-transform: uppercase;
-            pointer-events: auto; display: none; z-index: 25;
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            cursor: pointer;
-        }
-
-        .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);
-            color: white; z-index: 30; text-align: center;
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-        }
-        
-        .game-title {
-            font-family: 'Fredoka One', cursive;
-            font-size: 3.2rem; letter-spacing: 1px;
-            margin: 0; text-shadow: 0 6px 12px rgba(0,0,0,0.3);
-        }
-
-        .btn {
-            background: linear-gradient(180deg, #5DADE2 0%, #2E86C1 100%);
-            color: white; padding: 18px 60px; border-radius: 50px;
-            font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
-            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.4rem;
-            box-shadow: 0 5px 0 #1B4F72, 0 10px 20px rgba(0,0,0,0.2);
-            transition: all 0.1s; cursor: pointer;
-        }
+        #menu-btn { position: absolute; bottom: 10%; left: 5%; background: rgba(255,255,255,0.2); color: white; padding: 10px 18px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.3); font-size: 0.8rem; font-weight: 900; text-transform: uppercase; pointer-events: auto; display: none; z-index: 25; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%); color: white; z-index: 30; text-align: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        .game-title { font-family: 'Fredoka One', cursive; font-size: 3.2rem; letter-spacing: 1px; margin: 0; text-shadow: 0 6px 12px rgba(0,0,0,0.3); }
+        .btn { background: linear-gradient(180deg, #5DADE2 0%, #2E86C1 100%); color: white; padding: 18px 60px; border-radius: 50px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-top: 25px; pointer-events: auto; border: none; font-size: 1.4rem; box-shadow: 0 5px 0 #1B4F72, 0 10px 20px rgba(0,0,0,0.2); transition: all 0.1s; cursor: pointer; }
         .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #1B4F72, 0 5px 10px rgba(0,0,0,0.2); }
-
-        #milestone-pop {
-            position: absolute; top: 30%; width: 100%; text-align: center;
-            color: #FFD700; font-family: 'Fredoka One', cursive; font-size: 2.2rem;
-            text-transform: uppercase; letter-spacing: 3px; opacity: 0; 
-            transition: opacity 0.6s, transform 0.6s; z-index: 15;
-            pointer-events: none; transform: scale(0.8);
-        }
-        
-        .toggle-box {
-            margin-top: 25px; background: rgba(255,255,255,0.08);
-            padding: 12px 25px; border-radius: 100px; pointer-events: auto;
-            font-size: 1rem; font-weight: 700; text-transform: uppercase;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+        #milestone-pop { position: absolute; top: 30%; width: 100%; text-align: center; color: #FFD700; font-family: 'Fredoka One', cursive; font-size: 2.2rem; text-transform: uppercase; letter-spacing: 3px; opacity: 0; transition: opacity 0.6s, transform 0.6s; z-index: 15; pointer-events: none; transform: scale(0.8); }
+        .toggle-box { margin-top: 25px; background: rgba(255,255,255,0.08); padding: 12px 25px; border-radius: 100px; pointer-events: auto; font-size: 1rem; font-weight: 700; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.2); }
         input[type="checkbox"] { transform: scale(1.6); margin-right: 12px; vertical-align: middle; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div id="title">Park Wanderer</div>
-        <div id="score-container">
-            <span id="current-score">0</span>
-            <span id="best-score">Best: 0</span>
-        </div>
-    </div>
-
+    <div id="ui"><div id="title">Park Wanderer</div><div id="score-container"><span id="current-score">0</span><span id="best-score">Best: 0</span></div></div>
     <button id="menu-btn" onclick="endGameManually()">Menu</button>
-
-    <div id="start-overlay" class="overlay">
-        <h1 class="game-title">BALLOON STORY</h1>
-        <p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to play</p>
-        <div class="toggle-box">
-            <label><input type="checkbox" id="god-toggle"> Invincible</label>
-        </div>
-        <button class="btn" onclick="startGame()">Play</button>
-    </div>
-
-    <div id="gameover-overlay" class="overlay" style="display: none;">
-        <h1 class="game-title" style="color: #FADBD8;">GAME OVER</h1>
-        <p id="final-stats" style="margin: 15px 0; font-size: 1.2rem; font-weight: 700;"></p>
-        <button class="btn" onclick="resetToStart()">Try Again</button>
-    </div>
-
+    <div id="start-overlay" class="overlay"><h1 class="game-title">BALLOON STORY</h1><p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to play</p><div class="toggle-box"><label><input type="checkbox" id="god-toggle"> Invincible</label></div><button class="btn" onclick="startGame()">Play</button></div>
+    <div id="gameover-overlay" class="overlay" style="display: none;"><h1 class="game-title" style="color: #FADBD8;">GAME OVER</h1><p id="final-stats" style="margin: 15px 0; font-size: 1.2rem; font-weight: 700;"></p><button class="btn" onclick="resetToStart()">Try Again</button></div>
     <div id="milestone-pop">URBAN VOYAGER</div>
-
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -118,29 +43,22 @@
     const godToggle = document.getElementById('god-toggle');
     const menuBtn = document.getElementById('menu-btn');
 
-    // --- PHYSICS CONSTANTS ---
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60, 100]; 
     const STAGE_NAMES = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut", "Exosphere"];
 
     let width, height, balloon, score, gameState, gravity, currentGroundY;
-    let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null, fragments = [];
+    let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], fragments = [], shieldItem = null;
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0, popTimer = 0;
     
-    let wind = {
-        active: false,
-        warmingUp: false,
-        timer: 0,
-        warmupTimer: 45,
-        maxTimer: 200,
-        force: 0,
-        visualX: 0,
-        pointsSinceLast: 0,
-        triggerDistance: 10,
-        lastScoreProcessed: 0
-    };
+    // --- KINETIC & FIRE STATE ---
+    let streak = 0;
+    let isOnFire = false;
+    let squishTimer = 0;
+    let framesSinceLastTap = 0;
 
+    let wind = { active: false, warmingUp: false, timer: 0, warmupTimer: 45, maxTimer: 200, force: 0, visualX: 0, pointsSinceLast: 0, triggerDistance: 10, lastScoreProcessed: 0 };
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -148,18 +66,13 @@
         canvas.width = width; canvas.height = height;
         currentGroundY = height * 0.88;
         gameState = 'START';
-        
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = []; fragments = []; shieldItem = null;
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
         hasShield = false; shakeTimer = 0; popTimer = 0;
+        streak = 0; isOnFire = false; squishTimer = 0; framesSinceLastTap = 0;
         
-        // Full Variable Reset
-        wind.active = false;
-        wind.warmingUp = false;
-        wind.timer = 0;
-        wind.pointsSinceLast = 0;
-        wind.lastScoreProcessed = 0;
+        wind.active = false; wind.warmingUp = false; wind.timer = 0; wind.pointsSinceLast = 0; wind.lastScoreProcessed = 0;
         wind.triggerDistance = 8 + Math.floor(Math.random() * 6);
         
         document.body.style.background = "#87CEEB";
@@ -173,197 +86,89 @@
         for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
 
-    function startGame() {
-        gameState = 'PLAYING';
-        document.getElementById('start-overlay').style.display = 'none';
-        menuBtn.style.display = 'block';
-    }
-
-    function resetToStart() {
-        document.getElementById('gameover-overlay').style.display = 'none';
-        init();
-        document.getElementById('start-overlay').style.display = 'flex';
-    }
-
-    function triggerMilestone(text) {
-        milestonePop.innerText = text;
-        milestonePop.style.opacity = 1;
-        milestonePop.style.transform = "scale(1)";
-        setTimeout(() => {
-            milestonePop.style.opacity = 0;
-            milestonePop.style.transform = "scale(0.8)";
-        }, 2500);
-    }
+    function startGame() { gameState = 'PLAYING'; document.getElementById('start-overlay').style.display = 'none'; menuBtn.style.display = 'block'; }
+    function resetToStart() { document.getElementById('gameover-overlay').style.display = 'none'; init(); document.getElementById('start-overlay').style.display = 'flex'; }
+    function triggerMilestone(text) { milestonePop.innerText = text; milestonePop.style.opacity = 1; milestonePop.style.transform = "scale(1)"; setTimeout(() => { milestonePop.style.opacity = 0; milestonePop.style.transform = "scale(0.8)"; }, 2500); }
 
     function gameOver() {
         if (godToggle.checked) return;
-        
-        // Trigger Fragment Pop
         gameState = 'POPPING';
-        popTimer = 40; 
-        shakeTimer = 15;
+        popTimer = 40; shakeTimer = 15;
         menuBtn.style.display = 'none';
-        
-        for(let i=0; i<8; i++) {
-            fragments.push({
-                x: balloon.x,
-                y: balloon.y,
-                vx: (Math.random() - 0.5) * 10,
-                vy: (Math.random() - 0.5) * 10,
-                r: 4 + Math.random() * 6
-            });
-        }
+        for(let i=0; i<8; i++) { fragments.push({ x: balloon.x, y: balloon.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, r: 4 + Math.random() * 6 }); }
     }
 
-    function showGameOverUI() {
-        gameState = 'GAMEOVER';
-        document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`;
-    }
-
-    function endGameManually() {
-        gameState = 'GAMEOVER';
-        menuBtn.style.display = 'none';
-        document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Stopped at Score: ${score}`;
-    }
+    function showGameOverUI() { gameState = 'GAMEOVER'; document.getElementById('gameover-overlay').style.display = 'flex'; document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`; }
+    function endGameManually() { gameState = 'GAMEOVER'; menuBtn.style.display = 'none'; document.getElementById('gameover-overlay').style.display = 'flex'; document.getElementById('final-stats').innerText = `Stopped at Score: ${score}`; }
 
     function spawnItem(randomX = false) {
-        let type = "hill";
-        if (score >= MILESTONES[0]) type = "building";
-        if (score >= MILESTONES[1]) type = "mountain";
-        if (score >= MILESTONES[2]) return; 
-
+        let type = "hill"; if (score >= MILESTONES[0]) type = "building"; if (score >= MILESTONES[1]) type = "mountain"; if (score >= MILESTONES[2]) return; 
         let itemW = type === "hill" ? 220 + Math.random()*150 : (type === "mountain" ? 300 + Math.random()*400 : 75 + Math.random()*60);
         let itemH = type === "hill" ? 30 + Math.random()*25 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
-
-        backdrops.push({
-            x: randomX ? Math.random() * (width + 600) : width + 400,
-            type: type, w: itemW, h: itemH, speed: type === "mountain" ? 1.2 : 1.6
-        });
-
-        if (type === "hill" && Math.random() > 0.4) {
-            decor.push({ x: randomX ? Math.random() * (width + 600) : width + 400, type: 'tree', w: 15 + Math.random()*10, h: 40 + Math.random()*30, speed: 1.6 });
-        }
+        backdrops.push({ x: randomX ? Math.random() * (width + 600) : width + 400, type: type, w: itemW, h: itemH, speed: type === "mountain" ? 1.2 : 1.6 });
+        if (type === "hill" && Math.random() > 0.4) { decor.push({ x: randomX ? Math.random() * (width + 600) : width + 400, type: 'tree', w: 15 + Math.random()*10, h: 40 + Math.random()*30, speed: 1.6 }); }
     }
 
-    function spawnCloud(randomX = false) {
-        clouds.push({ x: randomX ? Math.random() * (width + 300) : width + 200, y: Math.random() * (height * 0.5), size: 40 + Math.random() * 60, speed: 0.2 + Math.random() * 0.6, alpha: 0.1 + Math.random() * 0.3 });
-    }
-
-    function spawnObstacle() {
-        const side = Math.random() > 0.5 ? -50 : width + 50;
-        let type = score >= MILESTONES[2] ? "satellite" : (score >= MILESTONES[1] ? "eagle" : "bird");
-        let speed = (side < 0 ? 1 : -1) * (2.8 + (score/40));
-        obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
-    }
-
-    function spawnShield() {
-        if (hasShield || shieldItem) return;
-        shieldItem = { x: 50 + Math.random() * (width - 100), y: -50, vy: 1.8 };
-    }
+    function spawnCloud(randomX = false) { clouds.push({ x: randomX ? Math.random() * (width + 300) : width + 200, y: Math.random() * (height * 0.5), size: 40 + Math.random() * 60, speed: 0.2 + Math.random() * 0.6, alpha: 0.1 + Math.random() * 0.3 }); }
+    function spawnObstacle() { const side = Math.random() > 0.5 ? -50 : width + 50; let type = score >= MILESTONES[2] ? "satellite" : (score >= MILESTONES[1] ? "eagle" : "bird"); let speed = (side < 0 ? 1 : -1) * (2.8 + (score/40)); obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 }); }
+    function spawnShield() { if (hasShield || shieldItem) return; shieldItem = { x: 50 + Math.random() * (width - 100), y: -50, vy: 1.8 }; }
 
     function handleInput(posX, posY) {
         if (gameState !== 'PLAYING') return;
         const dist = Math.sqrt((posX - balloon.x)**2 + (posY - balloon.y)**2);
         if (dist < balloon.radius + 85) {
-            balloon.vy = TAP_POWER; 
-            balloon.vx = (balloon.x - posX) * 0.45;
-            score++;
-            scoreEl.innerText = score;
+            balloon.vy = TAP_POWER; balloon.vx = (balloon.x - posX) * 0.45;
+            score++; scoreEl.innerText = score;
             
+            // Kinetic Logic
+            streak++;
+            framesSinceLastTap = 0;
+            squishTimer = 12; // Trigger squish
+            if (streak >= 12 && !isOnFire) { isOnFire = true; triggerMilestone("ENFLAMED"); }
+
             if (score === MILESTONES[0]) triggerMilestone(STAGE_NAMES[1]);
             if (score === MILESTONES[1]) triggerMilestone(STAGE_NAMES[2]);
             if (score === MILESTONES[2]) triggerMilestone(STAGE_NAMES[3]);
             if (score === MILESTONES[3]) triggerMilestone(STAGE_NAMES[4]);
 
             checkBiomeShift();
-            if (!godToggle.checked && score > highScore) {
-                highScore = score;
-                localStorage.setItem('balloonHighScore', highScore);
-                bestEl.innerText = `Best: ${highScore}`;
-            }
+            if (!godToggle.checked && score > highScore) { highScore = score; localStorage.setItem('balloonHighScore', highScore); bestEl.innerText = `Best: ${highScore}`; }
         }
     }
 
-    window.addEventListener('touchstart', (e) => {
-        handleInput(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: false });
-
-    window.addEventListener('mousedown', (e) => {
-        handleInput(e.clientX, e.clientY);
-    });
-
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && gameState === 'START') startGame();
-        if (e.code === 'KeyM' && gameState === 'PLAYING') endGameManually();
-    });
+    window.addEventListener('touchstart', (e) => { handleInput(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    window.addEventListener('mousedown', (e) => { handleInput(e.clientX, e.clientY); });
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && gameState === 'START') startGame(); if (e.code === 'KeyM' && gameState === 'PLAYING') endGameManually(); });
 
     function checkBiomeShift() {
         let b = 0; if (score >= MILESTONES[0]) b = 1; if (score >= MILESTONES[1]) b = 2; if (score >= MILESTONES[2]) b = 3; if (score >= MILESTONES[3]) b = 4;
         if (b !== lastBiome) {
-            lastBiome = b; backdrops = []; decor = [];
-            for(let i=0; i<12; i++) spawnItem(true); 
+            lastBiome = b; backdrops = []; decor = []; for(let i=0; i<12; i++) spawnItem(true); 
             document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A", "#050505"][b];
-            titleEl.innerText = STAGE_NAMES[b];
-            gravity = GRAV_TIERS[b];
+            titleEl.innerText = STAGE_NAMES[b]; gravity = GRAV_TIERS[b];
         }
     }
 
     function update() {
-        // --- TRANSITION UPDATE ---
-        if (gameState === 'POPPING') {
-            popTimer--;
-            fragments.forEach(f => {
-                f.x += f.vx; f.y += f.vy;
-                f.vy += 0.2; // Small gravity on fragments
-            });
-            if (popTimer <= 0) showGameOverUI();
-        }
+        if (gameState === 'POPPING') { popTimer--; fragments.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.2; }); if (popTimer <= 0) showGameOverUI(); }
 
         if (gameState === 'PLAYING') {
-            backdrops.forEach(b => b.x -= b.speed);
-            decor.forEach(d => d.x -= d.speed);
-            clouds.forEach(c => c.x -= c.speed);
+            backdrops.forEach(b => b.x -= b.speed); decor.forEach(d => d.x -= d.speed); clouds.forEach(c => c.x -= c.speed);
             
+            // --- FIRE COOLDOWN ---
+            framesSinceLastTap++;
+            if (framesSinceLastTap > 90) { isOnFire = false; streak = 0; }
+            if (squishTimer > 0) squishTimer--;
+
             // --- WIND ENGINE ---
             if (!wind.active && !wind.warmingUp) {
-                if (score > wind.lastScoreProcessed) {
-                    wind.pointsSinceLast++;
-                    wind.lastScoreProcessed = score;
-                }
-                if (wind.pointsSinceLast >= wind.triggerDistance) {
-                    wind.warmingUp = true;
-                    wind.timer = wind.warmupTimer;
-                    let isSpace = score >= MILESTONES[2];
-                    wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8);
-                }
-            } else if (wind.warmingUp) {
-                shakeTimer = 2;
-                wind.timer--;
-                wind.visualX += wind.force * 5;
-                if (wind.timer <= 0) {
-                    wind.warmingUp = false;
-                    wind.active = true;
-                    let isSpace = score >= MILESTONES[2];
-                    wind.timer = isSpace ? 110 : 230;
-                    shakeTimer = 20;
-                }
-            } else if (wind.active) {
-                balloon.vx += wind.force * 0.05; 
-                wind.timer--; 
-                wind.visualX += wind.force * 18;
-                if (wind.timer <= 0) {
-                    wind.active = false;
-                    wind.pointsSinceLast = 0;
-                    wind.triggerDistance = 8 + Math.floor(Math.random() * 8);
-                }
-            }
+                if (score > wind.lastScoreProcessed) { wind.pointsSinceLast++; wind.lastScoreProcessed = score; }
+                if (wind.pointsSinceLast >= wind.triggerDistance) { wind.warmingUp = true; wind.timer = wind.warmupTimer; let isSpace = score >= MILESTONES[2]; wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.2 : 1.8); }
+            } else if (wind.warmingUp) { shakeTimer = 2; wind.timer--; wind.visualX += wind.force * 5; if (wind.timer <= 0) { wind.warmingUp = false; wind.active = true; let isSpace = score >= MILESTONES[2]; wind.timer = isSpace ? 110 : 230; shakeTimer = 20; } }
+            else if (wind.active) { balloon.vx += wind.force * 0.05; wind.timer--; wind.visualX += wind.force * 18; if (wind.timer <= 0) { wind.active = false; wind.pointsSinceLast = 0; wind.triggerDistance = 8 + Math.floor(Math.random() * 8); } }
 
             // --- PHYSICS ---
-            balloon.vy += gravity; 
-            balloon.y += balloon.vy; 
-            balloon.x += balloon.vx; 
+            balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; 
             balloon.vx *= (wind.active || wind.warmingUp) ? 0.98 : 0.92;
 
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
@@ -371,15 +176,10 @@
 
             if (score >= MILESTONES[2] && currentGroundY < height * 0.94) currentGroundY += 3;
             
-            birdSpawnTimer++;
-            if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
+            birdSpawnTimer++; if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
+            shieldSpawnTimer++; const sThreshold = hasShield ? 600 : Math.max(80, 400 - score * 12); if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
-            shieldSpawnTimer++;
-            const sThreshold = hasShield ? 600 : Math.max(80, 400 - score * 12);
-            if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
-
-            let rightmost = 0;
-            backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
+            let rightmost = 0; backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
             if (rightmost < width + 100 && score < MILESTONES[2]) spawnItem();
             if (clouds.length < 10) spawnCloud();
 
@@ -387,7 +187,8 @@
                 o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { 
-                    if (hasShield) { hasShield = false; obstacles.splice(i, 1); } 
+                    if (isOnFire) { isOnFire = false; streak = 0; shakeTimer = 25; obstacles.splice(i, 1); }
+                    else if (hasShield) { hasShield = false; shakeTimer = 15; obstacles.splice(i, 1); } 
                     else { gameOver(); }
                 }
                 if (o.x < -250 || o.x > width + 250) obstacles.splice(i, 1);
@@ -402,6 +203,7 @@
 
             if (balloon.y + balloon.radius > currentGroundY) {
                 balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5;
+                streak = 0; isOnFire = false; // Ground reset
             }
         }
         if (shakeTimer > 0) shakeTimer--;
@@ -431,41 +233,35 @@
             ctx.globalAlpha = wind.warmingUp ? 0.25 : 0.6;
             ctx.strokeStyle = isSpace ? "rgba(255, 100, 0, 1)" : "rgba(255, 255, 255, 1)"; 
             ctx.lineWidth = isSpace ? 10 : 5;
-            for(let i=0; i<8; i++) { 
-                let y = (height * 0.1) + i * (height * 0.1); 
-                let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; 
-                ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); 
-            }
+            for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); }
             ctx.globalAlpha = 1.0;
         }
 
         if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
         if (currentGroundY < height + 50) { ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a'); ctx.fillRect(0, currentGroundY, width, height); }
-
         obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
 
-        if (shieldItem) {
-            let isSpace = score >= MILESTONES[2];
-            ctx.fillStyle = isSpace ? "#BF5AF2" : "#48C9B0"; 
-            ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
-            ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
-        }
+        if (shieldItem) { let isSpace = score >= MILESTONES[2]; ctx.fillStyle = isSpace ? "#BF5AF2" : "#48C9B0"; ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
+        if (gameState === 'POPPING') { ctx.fillStyle = balloon.color; fragments.forEach(f => { ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill(); }); }
 
-        // --- DRAW FRAGMENTS ---
-        if (gameState === 'POPPING') {
-            ctx.fillStyle = balloon.color;
-            fragments.forEach(f => {
-                ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill();
-            });
-        }
-
-        // --- DRAW BALLOON ---
+        // --- DRAW BALLOON WITH SQUISH ---
         if (gameState === 'PLAYING') {
-            ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
-            if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
-            ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
+            ctx.save();
+            ctx.translate(balloon.x, balloon.y);
+            if (squishTimer > 0) {
+                let sY = 1 - (Math.sin(squishTimer * 0.3) * 0.2);
+                let sX = 1 + (Math.sin(squishTimer * 0.3) * 0.15);
+                ctx.scale(sX, sY);
+            }
+            
+            if (isOnFire) { ctx.shadowBlur = 25; ctx.shadowColor = "#FFA500"; ctx.fillStyle = "#FF8C00"; } 
+            else { ctx.fillStyle = balloon.color; }
 
+            ctx.beginPath(); ctx.arc(0, 0, balloon.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // Shield drawing stays centered
             if (hasShield) {
                 let isSpace = score >= MILESTONES[2];
                 ctx.strokeStyle = isSpace ? "#BF5AF2" : "#48C9B0";
@@ -475,7 +271,6 @@
         }
         ctx.restore();
     }
-
     init(); update();
 </script>
 </body>
