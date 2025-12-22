@@ -10,13 +10,11 @@
         body {
             margin: 0; padding: 0; overflow: hidden;
             background: #87CEEB; transition: background 4s ease;
-            /* Modern, rounded, "fun" but professional font stack */
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             touch-action: none; width: 100vw; height: 100vh; position: fixed; 
         }
         canvas { display: block; position: absolute; top: 0; left: 0; }
         
-        /* UI Elements */
         #ui {
             position: absolute; top: 8%; left: 0; width: 100%;
             text-align: center; pointer-events: none; color: white;
@@ -27,22 +25,20 @@
         #current-score { font-size: 4.5rem; display: block; }
         #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 5px; display: block; }
         
-        /* Exit Button for Infinite Bounce */
         #menu-btn {
             position: absolute; top: 5%; left: 5%;
             background: rgba(255,255,255,0.2); color: white;
-            padding: 8px 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.4);
-            font-size: 0.8rem; font-weight: bold; text-transform: uppercase;
+            padding: 10px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);
+            font-size: 0.85rem; font-weight: bold; text-transform: uppercase;
             pointer-events: auto; display: none; z-index: 25;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
         }
 
-        /* Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.45); color: white; z-index: 30; text-align: center;
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
         .btn {
             background: #4A90E2; color: white; padding: 18px 60px; border-radius: 40px;
@@ -50,12 +46,12 @@
             margin-top: 25px; pointer-events: auto; border: none; font-size: 1.3rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .btn:active { transform: scale(0.95); background: #357ABD; }
 
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
             color: #FFD700; font-weight: 900; font-size: 2rem; text-transform: uppercase;
             letter-spacing: 6px; opacity: 0; transition: opacity 0.6s; z-index: 15;
+            pointer-events: none;
         }
         .toggle-box {
             margin-top: 25px; background: rgba(255,255,255,0.15);
@@ -63,7 +59,7 @@
             font-size: 1rem; letter-spacing: 1px; text-transform: uppercase;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        input[type="checkbox"] { transform: scale(1.5); margin-right: 15px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.6); margin-right: 15px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -75,7 +71,7 @@
         </div>
     </div>
 
-    <button id="menu-btn" onclick="gameOver(true)">Menu</button>
+    <button id="menu-btn" onclick="endGameManually()">Menu</button>
 
     <div id="start-overlay" class="overlay">
         <h1 style="letter-spacing: 10px; font-size: 2.8rem; margin: 0; font-weight: 900;">BALLOON STORY</h1>
@@ -127,7 +123,8 @@
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = [];
         score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
-        shakeTimer = 0; wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*8), active: false };
+        shakeTimer = 0; 
+        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*8), active: false };
         
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
@@ -158,8 +155,15 @@
         setTimeout(() => milestonePop.style.opacity = 0, 2500);
     }
 
-    function gameOver(manual = false) {
-        if (godToggle.checked && !manual) return;
+    function gameOver() {
+        if (godToggle.checked) return;
+        gameState = 'GAMEOVER';
+        menuBtn.style.display = 'none';
+        document.getElementById('gameover-overlay').style.display = 'flex';
+        document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`;
+    }
+
+    function endGameManually() {
         gameState = 'GAMEOVER';
         menuBtn.style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
@@ -192,6 +196,7 @@
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
         let type = score >= MILESTONES[2] ? "satellite" : (score >= MILESTONES[1] ? "eagle" : "bird");
+        // Minimum speed set to 2.8 to ensure birds never lockstep with backdrop (max 1.6)
         let speed = (side < 0 ? 1 : -1) * (2.8 + (score/40));
         obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
@@ -207,13 +212,12 @@
             score++;
             scoreEl.innerText = score;
             
-            // Trigger Stage Names on Pop-up
             if (score === MILESTONES[0]) triggerMilestone(STAGE_NAMES[1]);
             if (score === MILESTONES[1]) triggerMilestone(STAGE_NAMES[2]);
             if (score === MILESTONES[2]) triggerMilestone(STAGE_NAMES[3]);
             if (score > MILESTONES[2] && score % 50 === 0) triggerMilestone("ORBIT: " + score);
 
-            // Stochastic Wind Engine
+            // STOCHASTIC WIND ENGINE
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
                 let isSpace = score >= MILESTONES[2];
@@ -274,7 +278,7 @@
                 o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { gameOver(); }
-                if (o.x < -200 || o.x > width + 200) obstacles.splice(i, 1);
+                if (o.x < -250 || o.x > width + 250) obstacles.splice(i, 1);
             });
 
             if (balloon.y + balloon.radius > currentGroundY) {
@@ -308,6 +312,7 @@
 
         decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
 
+        // --- STOCHASTIC WIND VISUALS (FADE SYNC) ---
         if (wind.timer > 0) {
             let isSpace = score >= MILESTONES[2];
             let opacity = Math.min(0.7, wind.timer / 40); if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
@@ -322,7 +327,6 @@
 
         obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
 
-        // String & Balloon
         ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
         if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
         ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
