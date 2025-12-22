@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Exosphere Test - Balloon Story</title>
+    <title>Balloon Story</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@900&display=swap');
+
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background: #050505; transition: background 4s ease;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #87CEEB; transition: background 4s ease;
+            font-family: 'Nunito', sans-serif;
             touch-action: none; width: 100vw; height: 100vh; position: fixed; 
         }
         canvas { display: block; position: absolute; top: 0; left: 0; }
@@ -18,51 +20,70 @@
         #ui {
             position: absolute; top: 8%; left: 0; width: 100%;
             text-align: center; pointer-events: none; color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); z-index: 10;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 10;
         }
-        #title { font-size: 1rem; letter-spacing: 4px; font-weight: 700; text-transform: uppercase; color: #FFD700; }
-        #score-container { font-weight: 900; line-height: 1; margin-top: 5px;}
-        #current-score { font-size: 4.5rem; display: block; }
-        #best-score { font-size: 1.1rem; opacity: 0.8; margin-top: 5px; display: block; }
+        #title { font-size: 1.2rem; letter-spacing: 3px; font-weight: 900; text-transform: uppercase; }
+        #score-container { line-height: 1; margin-top: 5px;}
+        #current-score { font-size: 5rem; font-family: 'Fredoka One', cursive; display: block; }
+        #best-score { font-size: 1.2rem; opacity: 0.9; margin-top: 5px; display: block; }
         
         #menu-btn {
             position: absolute; top: 5%; left: 5%;
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 10px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);
-            font-size: 0.85rem; font-weight: bold; text-transform: uppercase;
+            background: rgba(255,255,255,0.25); color: white;
+            padding: 12px 20px; border-radius: 50px; border: 2px solid rgba(255,255,255,0.3);
+            font-size: 0.9rem; font-weight: 900; text-transform: uppercase;
             pointer-events: auto; display: none; z-index: 25;
-            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
 
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.6); color: white; z-index: 30; text-align: center;
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+            color: white; z-index: 30; text-align: center;
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
+        
+        .game-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 3.5rem; letter-spacing: 2px;
+            margin: 0; text-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
         .btn {
-            background: #4A90E2; color: white; padding: 18px 60px; border-radius: 40px;
-            font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 25px; pointer-events: auto; border: none; font-size: 1.3rem;
+            background: linear-gradient(180deg, #5DADE2 0%, #2E86C1 100%);
+            color: white; padding: 20px 70px; border-radius: 50px;
+            font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 30px; pointer-events: auto; border: none; font-size: 1.5rem;
+            box-shadow: 0 8px 0 #1B4F72, 0 15px 25px rgba(0,0,0,0.3);
+            transition: all 0.1s; cursor: pointer;
+        }
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #1B4F72, 0 10px 15px rgba(0,0,0,0.3);
         }
 
         #milestone-pop {
             position: absolute; top: 30%; width: 100%; text-align: center;
-            color: #FFD700; font-weight: 900; font-size: 2rem; text-transform: uppercase;
-            letter-spacing: 6px; opacity: 0; transition: opacity 0.6s; z-index: 15;
-            pointer-events: none;
+            color: #FFD700; font-family: 'Fredoka One', cursive; font-size: 2.5rem;
+            text-transform: uppercase; letter-spacing: 4px; opacity: 0; 
+            transition: opacity 0.6s, transform 0.6s; z-index: 15;
+            pointer-events: none; transform: scale(0.8);
         }
+        
         .toggle-box {
-            margin-top: 25px; background: rgba(255,255,255,0.15);
-            padding: 12px 25px; border-radius: 25px; pointer-events: auto;
-            font-size: 1rem; letter-spacing: 1px; text-transform: uppercase;
+            margin-top: 30px; background: rgba(255,255,255,0.1);
+            padding: 15px 30px; border-radius: 100px; pointer-events: auto;
+            font-size: 1.1rem; font-weight: 700; text-transform: uppercase;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
         }
-        input[type="checkbox"] { transform: scale(1.6); margin-right: 15px; vertical-align: middle; }
+        input[type="checkbox"] { transform: scale(1.8); margin-right: 15px; vertical-align: middle; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div id="title">Exosphere (Physics Test)</div>
+        <div id="title">Park Wanderer</div>
         <div id="score-container">
             <span id="current-score">0</span>
             <span id="best-score">Best: 0</span>
@@ -72,21 +93,21 @@
     <button id="menu-btn" onclick="endGameManually()">Menu</button>
 
     <div id="start-overlay" class="overlay">
-        <h1 style="letter-spacing: 10px; font-size: 2.2rem; margin: 0; font-weight: 900;">SPACE TEST</h1>
-        <p style="opacity: 0.7; margin-top: 8px; font-weight: 500;">Testing 0.12 Gravity & Solar Flares</p>
+        <h1 class="game-title">BALLOON STORY</h1>
+        <p style="opacity: 0.8; font-size: 1.2rem; margin-top: 10px;">Tap to fly!</p>
         <div class="toggle-box">
-            <label><input type="checkbox" id="god-toggle" checked> Infinite Bounce</label>
+            <label><input type="checkbox" id="god-toggle"> Infinite Bounce</label>
         </div>
-        <button class="btn" onclick="startGame()">Start Test</button>
+        <button class="btn" onclick="startGame()">Play</button>
     </div>
 
     <div id="gameover-overlay" class="overlay" style="display: none;">
-        <h1 style="letter-spacing: 6px; color: #FFFFFF; margin-bottom: 0; font-weight: 900;">TEST ENDED</h1>
-        <p id="final-stats" style="margin: 20px 0; font-size: 1.1rem; opacity: 0.9;"></p>
-        <button class="btn" onclick="resetToStart()">Play Again</button>
+        <h1 class="game-title" style="color: #F1948A;">GAME OVER</h1>
+        <p id="final-stats" style="margin: 20px 0; font-size: 1.3rem; font-weight: 700;"></p>
+        <button class="btn" onclick="resetToStart()">Try Again</button>
     </div>
 
-    <div id="milestone-pop">SPACE REACHED</div>
+    <div id="milestone-pop">URBAN VOYAGER</div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -100,34 +121,39 @@
     const godToggle = document.getElementById('god-toggle');
     const menuBtn = document.getElementById('menu-btn');
 
-    // --- TEST PHYSICS: LOCKED TO EXOSPHERE ---
-    const TEST_GRAVITY = 0.12; 
+    // --- LOCKED SACRED PHYSICS ---
+    const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
+    const MILESTONES = [15, 35, 60, 100]; 
+    const STAGE_NAMES = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut", "Exosphere"];
 
-    let width, height, balloon, score, gameState, currentGroundY;
+    let width, height, balloon, score, gameState, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], shieldItem = null;
-    let hasShield = false, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
-    let wind = { force: 0, timer: 0, maxTimer: 110, visualX: 0, nextAt: 10, active: false };
+    let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0;
+    let wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 12, active: false };
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
         width = window.innerWidth; height = window.innerHeight;
         canvas.width = width; canvas.height = height;
-        currentGroundY = height * 1.5; // Push ground far away for space feel
+        currentGroundY = height * 0.88;
         gameState = 'START';
         
         balloon = { x: width/2, y: height/2, radius: Math.min(width, height)*0.08, vx: 0, vy: 0, color: '#FF5F5F' };
         backdrops = []; clouds = []; stars = []; obstacles = []; decor = []; shieldItem = null;
-        score = 0; hasShield = false; shakeTimer = 0; 
+        score = 0; lastBiome = 0; gravity = GRAV_TIERS[0]; 
+        hasShield = false; shakeTimer = 0; 
+        wind = { force: 0, timer: 0, maxTimer: 200, visualX: 0, nextAt: 10 + Math.floor(Math.random()*8), active: false };
         
-        wind = { force: 0, timer: 0, maxTimer: 110, visualX: 0, nextAt: 8 + Math.floor(Math.random()*5), active: false };
-        
-        document.body.style.background = "#050505";
+        document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0";
         bestEl.innerText = `Best: ${highScore}`;
+        titleEl.innerText = STAGE_NAMES[0];
         menuBtn.style.display = 'none';
 
-        for(let i=0; i<80; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*2});
+        for(let i=0; i<15; i++) spawnItem(true); 
+        for(let i=0; i<10; i++) spawnCloud(true);
+        for(let i=0; i<60; i++) stars.push({x: Math.random()*width, y: Math.random()*height, s: Math.random()*1.5});
     }
 
     function startGame() {
@@ -145,7 +171,11 @@
     function triggerMilestone(text) {
         milestonePop.innerText = text;
         milestonePop.style.opacity = 1;
-        setTimeout(() => milestonePop.style.opacity = 0, 2500);
+        milestonePop.style.transform = "scale(1)";
+        setTimeout(() => {
+            milestonePop.style.opacity = 0;
+            milestonePop.style.transform = "scale(0.8)";
+        }, 2500);
     }
 
     function gameOver() {
@@ -153,29 +183,49 @@
         gameState = 'GAMEOVER';
         menuBtn.style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Space Score: ${score}`;
+        document.getElementById('final-stats').innerText = `Score: ${score} | Region: ${titleEl.innerText}`;
     }
 
     function endGameManually() {
         gameState = 'GAMEOVER';
         menuBtn.style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `Score: ${score}`;
+        document.getElementById('final-stats').innerText = `Stopped at Score: ${score}`;
     }
 
-    function spawnCloud() {
-        clouds.push({ x: width + 200, y: Math.random() * (height * 0.8), size: 10 + Math.random() * 20, speed: 0.1 + Math.random() * 0.2, alpha: 0.05 + Math.random() * 0.1 });
+    function spawnItem(randomX = false) {
+        let type = "hill";
+        if (score >= MILESTONES[0]) type = "building";
+        if (score >= MILESTONES[1]) type = "mountain";
+        if (score >= MILESTONES[2]) return; 
+
+        let itemW = type === "hill" ? 220 + Math.random()*150 : (type === "mountain" ? 300 + Math.random()*400 : 75 + Math.random()*60);
+        let itemH = type === "hill" ? 30 + Math.random()*25 : (type === "mountain" ? 200 + Math.random()*250 : 250 + Math.random()*350);
+
+        backdrops.push({
+            x: randomX ? Math.random() * (width + 600) : width + 400,
+            type: type, w: itemW, h: itemH, speed: type === "mountain" ? 1.2 : 1.6
+        });
+
+        if (type === "hill" && Math.random() > 0.4) {
+            decor.push({ x: randomX ? Math.random() * (width + 600) : width + 400, type: 'tree', w: 15 + Math.random()*10, h: 40 + Math.random()*30, speed: 1.6 });
+        }
+    }
+
+    function spawnCloud(randomX = false) {
+        clouds.push({ x: randomX ? Math.random() * (width + 300) : width + 200, y: Math.random() * (height * 0.5), size: 40 + Math.random() * 60, speed: 0.2 + Math.random() * 0.6, alpha: 0.1 + Math.random() * 0.3 });
     }
 
     function spawnObstacle() {
         const side = Math.random() > 0.5 ? -50 : width + 50;
-        let speed = (side < 0 ? 1 : -1) * (3.0 + (score/30));
-        obstacles.push({ x: side, y: 100 + Math.random()*(height-200), vx: speed, type: "satellite", wing: 0 });
+        let type = score >= MILESTONES[2] ? "satellite" : (score >= MILESTONES[1] ? "eagle" : "bird");
+        let speed = (side < 0 ? 1 : -1) * (2.8 + (score/40));
+        obstacles.push({ x: side, y: 100 + Math.random()*(currentGroundY-250), vx: speed, type: type, wing: 0 });
     }
 
     function spawnShield() {
         if (hasShield || shieldItem) return;
-        shieldItem = { x: 50 + Math.random() * (width - 100), y: -50, vy: 1.5 };
+        shieldItem = { x: 50 + Math.random() * (width - 100), y: -50, vy: 1.8 };
     }
 
     window.addEventListener('touchstart', (e) => {
@@ -189,18 +239,22 @@
             score++;
             scoreEl.innerText = score;
             
-            if (score % 50 === 0) triggerMilestone("DEEP ORBIT: " + score);
+            if (score === MILESTONES[0]) triggerMilestone(STAGE_NAMES[1]);
+            if (score === MILESTONES[1]) triggerMilestone(STAGE_NAMES[2]);
+            if (score === MILESTONES[2]) triggerMilestone(STAGE_NAMES[3]);
+            if (score === MILESTONES[3]) triggerMilestone(STAGE_NAMES[4]);
 
-            // WIND ENGINE (Solar Flares)
             if (score >= wind.nextAt && !wind.active) {
                 wind.active = true;
-                wind.force = (Math.random() > 0.5 ? 1 : -1) * 3.5;
-                wind.timer = 110; 
+                let isSpace = score >= MILESTONES[2];
+                wind.force = (Math.random() > 0.5 ? 1 : -1) * (isSpace ? 3.3 : 1.8);
+                wind.timer = isSpace ? 110 : 230; 
                 wind.maxTimer = wind.timer;
-                wind.nextAt = score + 8 + Math.floor(Math.random()*8);
-                shakeTimer = 20; 
+                wind.nextAt = score + 12 + Math.floor(Math.random()*8);
+                shakeTimer = 18; 
             }
 
+            checkBiomeShift();
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('balloonHighScore', highScore);
@@ -209,45 +263,72 @@
         }
     }, { passive: false });
 
+    function checkBiomeShift() {
+        let b = 0; 
+        if (score >= MILESTONES[0]) b = 1; 
+        if (score >= MILESTONES[1]) b = 2; 
+        if (score >= MILESTONES[2]) b = 3;
+        if (score >= MILESTONES[3]) b = 4;
+
+        if (b !== lastBiome) {
+            lastBiome = b; backdrops = []; decor = [];
+            for(let i=0; i<12; i++) spawnItem(true); 
+            document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A", "#050505"][b];
+            titleEl.innerText = STAGE_NAMES[b];
+            gravity = GRAV_TIERS[b];
+        }
+    }
+
     function update() {
         if (gameState === 'PLAYING') {
+            backdrops.forEach(b => b.x -= b.speed);
+            decor.forEach(d => d.x -= d.speed);
             clouds.forEach(c => c.x -= c.speed);
             
             if (wind.timer > 0) {
-                balloon.vx += wind.force * 0.05; wind.timer--; wind.visualX += wind.force * 22;
+                balloon.vx += wind.force * 0.05; wind.timer--; wind.visualX += wind.force * 18;
                 if (wind.timer <= 0) wind.active = false;
             }
 
-            balloon.vy += TEST_GRAVITY; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
+            balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; balloon.vx *= 0.98;
 
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
 
+            if (score >= MILESTONES[2] && currentGroundY < height * 0.94) currentGroundY += 3;
+            
             birdSpawnTimer++;
-            if (birdSpawnTimer > 40) { spawnObstacle(); birdSpawnTimer = 0; }
+            if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
 
+            // Ramping Shield Frequency Verified
             shieldSpawnTimer++;
-            if (shieldSpawnTimer > 300) { spawnShield(); shieldSpawnTimer = 0; }
+            const sThreshold = Math.max(40, 400 - score * 15);
+            if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
+
+            let rightmost = 0;
+            backdrops.forEach(b => { if(b.x + b.w > rightmost) rightmost = b.x + b.w; });
+            if (rightmost < width + 100 && score < MILESTONES[2]) spawnItem();
+            if (clouds.length < 10) spawnCloud();
 
             obstacles.forEach((o, i) => {
-                o.x += o.vx;
+                o.x += o.vx; o.wing += 0.15;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { 
-                    if (hasShield) { hasShield = false; obstacles.splice(i, 1); } else { gameOver(); }
+                    if (hasShield) { hasShield = false; obstacles.splice(i, 1); } 
+                    else { gameOver(); }
                 }
                 if (o.x < -250 || o.x > width + 250) obstacles.splice(i, 1);
             });
 
             if (shieldItem) {
-                shieldItem.y += 1.5;
+                shieldItem.y += 1.8;
                 let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
                 if (d < balloon.radius + 20) { hasShield = true; shieldItem = null; }
                 else if (shieldItem.y > height) shieldItem = null;
             }
 
-            // Always safe bottom for the "Love of the Bounce"
-            if (balloon.y + balloon.radius > height * 0.95) {
-                balloon.y = height * 0.95 - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.4;
+            if (balloon.y + balloon.radius > currentGroundY) {
+                balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5;
             }
             if (shakeTimer > 0) shakeTimer--;
         }
@@ -257,57 +338,54 @@
 
     function draw() {
         ctx.save();
-        if (shakeTimer > 0) ctx.translate(Math.random()*12-6, Math.random()*12-6);
+        if (shakeTimer > 0) ctx.translate(Math.random()*10-5, Math.random()*10-5);
 
         ctx.clearRect(0, 0, width, height);
+        clouds.forEach(c => { ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
         
-        // Stars
-        ctx.fillStyle = "white"; 
-        stars.forEach(s => { ctx.globalAlpha = 0.3 + Math.random()*0.7; ctx.fillRect(s.x, s.y, s.s, s.s); }); 
-        ctx.globalAlpha = 1.0; 
+        if (score >= MILESTONES[0]) { 
+            ctx.fillStyle = "white"; stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); }); ctx.globalAlpha = 1.0; 
+        }
 
-        // Rare Space Clouds (Gas clouds)
-        clouds.forEach(c => { ctx.fillStyle = `rgba(100, 50, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
+        backdrops.forEach(b => {
+            ctx.fillStyle = (score >= MILESTONES[0]) ? "#111" : "#2d4d2d";
+            if (b.type === "hill") { ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill(); }
+            else if (b.type === "building") { ctx.fillStyle = "#222"; ctx.fillRect(b.x, currentGroundY - b.h, b.w, b.h); ctx.fillStyle = "#FFD700"; for(let r=0; r<6; r++) for(let c=0; c<2; c++) ctx.fillRect(b.x + 10 + c*25, currentGroundY - b.h + 20 + r*45, 10, 10); }
+            else if (b.type === "mountain") { ctx.fillStyle = "#0a0a0a"; ctx.beginPath(); ctx.moveTo(b.x, currentGroundY); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w, currentGroundY); ctx.fill(); ctx.fillStyle = "white"; ctx.beginPath(); ctx.moveTo(b.x + b.w*0.4, currentGroundY - b.h*0.8); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w*0.6, currentGroundY - b.h*0.8); ctx.fill(); }
+        });
 
-        // --- SOLAR FLARE VISUALS ---
+        decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
+
         if (wind.timer > 0) {
-            let opacity = Math.min(0.8, wind.timer / 30); if (wind.timer > (wind.maxTimer - 30)) opacity = (wind.maxTimer - wind.timer) / 30;
-            ctx.globalAlpha = opacity; 
-            ctx.strokeStyle = "rgba(255, 60, 0, 0.9)"; ctx.lineWidth = 12;
-            ctx.shadowBlur = 30; ctx.shadowColor = "#FF0000";
-            for(let i=0; i<8; i++) {
-                let y = (height * 0.1) + i * (height * 0.1);
-                let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150;
-                ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 150 : -150), y); ctx.stroke();
-            }
+            let isSpace = score >= MILESTONES[2];
+            let opacity = Math.min(0.7, wind.timer / 40); if (wind.timer > (wind.maxTimer - 40)) opacity = (wind.maxTimer - wind.timer) / 40;
+            ctx.globalAlpha = opacity; ctx.strokeStyle = isSpace ? "rgba(255, 80, 0, 0.85)" : "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = isSpace ? 10 : 4;
+            if (isSpace) { ctx.shadowBlur = 25; ctx.shadowColor = "#FF4500"; }
+            for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xStart = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xStart + (wind.force > 0 ? 120 : -120), y); ctx.stroke(); }
             ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
         }
 
-        // Earth Curve far below
-        ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 20;
-        ctx.beginPath(); ctx.arc(width/2, height * 5, height * 4.1, 0, Math.PI*2); ctx.stroke();
+        if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
+        if (currentGroundY < height + 50) { ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a'); ctx.fillRect(0, currentGroundY, width, height); }
 
-        // Satellites
-        obstacles.forEach(o => { 
-            ctx.lineWidth = 4; ctx.strokeStyle = "#00F2FF"; 
-            ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10);
-            ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16);
-        });
+        obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
 
-        // Shield Item
         if (shieldItem) {
-            ctx.fillStyle = "#00FF7F"; ctx.shadowBlur = 15; ctx.shadowColor = "#00FF7F";
+            let isSpace = score >= MILESTONES[2];
+            ctx.fillStyle = isSpace ? "#BF5AF2" : "#48C9B0"; 
+            ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
             ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill();
             ctx.shadowBlur = 0;
         }
 
-        // Balloon & String
-        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.shadowBlur = 25; ctx.shadowColor = "white";
+        ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 40); ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (score > 35) { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
         ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2); ctx.fillStyle = balloon.color; ctx.fill(); ctx.shadowBlur = 0;
 
         if (hasShield) {
-            ctx.strokeStyle = "#00FF7F"; ctx.lineWidth = 6;
+            let isSpace = score >= MILESTONES[2];
+            ctx.strokeStyle = isSpace ? "#BF5AF2" : "#48C9B0";
+            ctx.lineWidth = 6;
             ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius + 12, 0, Math.PI*2); ctx.stroke();
         }
 
