@@ -56,8 +56,8 @@
 
     let wind = { phase: 0, timer: 0, warmupTimer: 50, force: 0, visualX: 0, lastScoreBaseline: 0, triggerDistance: 8 };
     
-    // --- UPDATED GALE HEAT ENGINE (Triggered in ~2-3 taps) ---
-    let gale = { heat: 0, maxHeat: 100, buildRate: 1.1, drainRate: 0.55, opacity: 0 };
+    // --- BALANCED GALE HEAT (Triggered in ~3-4 taps) ---
+    let gale = { heat: 0, maxHeat: 100, buildRate: 0.8, drainRate: 0.4, opacity: 0 };
     
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -150,7 +150,7 @@
             }
 
             if (gale.heat >= gale.maxHeat) {
-                balloon.vy += 0.85; // Heavy, Punishing Downward Pressure
+                balloon.vy += 0.85; // Heavy Downward Pressure
                 balloon.vx += (Math.random() - 0.5) * 5.0; // Erratic Jitter
                 shakeTimer = Math.max(shakeTimer, 4);
             } else if (gale.heat > 25) {
