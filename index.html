@@ -54,8 +54,11 @@
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0, popTimer = 0;
     let streak = 0, isOnFire = false, squishTimer = 0, framesSinceLastTap = 0;
 
-    // Wind State Machine (Fixed Shudder)
     let wind = { phase: 0, timer: 0, warmupTimer: 50, force: 0, visualX: 0, lastScoreBaseline: 0, triggerDistance: 8 };
+    
+    // --- GALE STATE ---
+    let gale = { phase: 0, timer: 0, warningTime: 120, triggerTime: 210, opacity: 0 };
+    
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -69,6 +72,9 @@
         streak = 0; isOnFire = false; squishTimer = 0; framesSinceLastTap = 0;
         wind.phase = 0; wind.timer = 0; wind.force = 0; wind.visualX = 0; wind.lastScoreBaseline = 0;
         wind.triggerDistance = 7 + Math.floor(Math.random() * 5);
+        
+        gale.phase = 0; gale.timer = 0; gale.opacity = 0;
+
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0"; bestEl.innerText = `Best: ${highScore}`;
         titleEl.innerText = STAGE_NAMES[0]; menuBtn.style.display = 'none';
@@ -136,6 +142,23 @@
             framesSinceLastTap++; if (framesSinceLastTap > 150) { isOnFire = false; streak = 0; }
             if (squishTimer > 0) squishTimer--;
 
+            // --- GALE TIMER LOGIC ---
+            if (balloon.y < 0) {
+                gale.timer++;
+                if (gale.timer > gale.triggerTime) {
+                    gale.phase = 2;
+                    balloon.vy += 0.45; // The Downward Slap
+                    balloon.vx += (Math.random() - 0.5) * 1.8; // Vertical Turbulence
+                    shakeTimer = 5;
+                } else if (gale.timer > gale.warningTime) {
+                    gale.phase = 1;
+                    shakeTimer = 2; 
+                    gale.opacity = Math.abs(Math.sin(gale.timer * 0.12)) * 0.45;
+                }
+            } else {
+                gale.phase = 0; gale.timer = 0; gale.opacity = 0;
+            }
+
             if (wind.phase === 0) { 
                 if (score - wind.lastScoreBaseline >= wind.triggerDistance) {
                     wind.phase = 1; wind.timer = wind.warmupTimer;
@@ -202,6 +225,26 @@
             for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xS = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xS, y); ctx.lineTo(xS + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); } ctx.globalAlpha = 1.0;
         }
 
+        // --- GALE EFFECTS (DOWNDRAFTS & ALERT) ---
+        if (gale.phase > 0) {
+            // Pulse Vignette
+            ctx.strokeStyle = `rgba(255, 0, 0, ${gale.opacity})`;
+            ctx.lineWidth = 30;
+            ctx.strokeRect(0, 0, width, height);
+
+            if (gale.phase === 2) {
+                // Vertical Gale Streaks
+                let isp = score >= MILESTONES[2];
+                ctx.strokeStyle = isp ? "rgba(255, 220, 0, 0.8)" : "rgba(255, 255, 255, 0.7)";
+                ctx.lineWidth = 4;
+                for(let i=0; i<6; i++) {
+                    let x = (width * 0.15) + i * (width * 0.15);
+                    let yS = (Date.now() * 2.5 + (i * 120)) % (height + 300) - 150;
+                    ctx.beginPath(); ctx.moveTo(x, yS); ctx.lineTo(x, yS + 180); ctx.stroke();
+                }
+            }
+        }
+
         if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
         if (currentGroundY < height + 50) { ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a'); ctx.fillRect(0, currentGroundY, width, height); }
         
@@ -223,7 +266,8 @@
     }
     init(); update();
 </script>
-    <script>
+
+<script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
