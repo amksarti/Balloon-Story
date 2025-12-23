@@ -56,8 +56,8 @@
 
     let wind = { phase: 0, timer: 0, warmupTimer: 50, force: 0, visualX: 0, lastScoreBaseline: 0, triggerDistance: 8 };
     
-    // --- ERRATIC GALE HEAT ENGINE ---
-    let gale = { heat: 0, maxHeat: 100, buildRate: 1.8, drainRate: 0.8, opacity: 0 };
+    // --- UPDATED GALE HEAT ENGINE (Triggered in ~2-3 taps) ---
+    let gale = { heat: 0, maxHeat: 100, buildRate: 1.1, drainRate: 0.55, opacity: 0 };
     
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -142,7 +142,7 @@
             framesSinceLastTap++; if (framesSinceLastTap > 150) { isOnFire = false; streak = 0; }
             if (squishTimer > 0) squishTimer--;
 
-            // --- ULTRA-THIN 5% HEAT TRIGGER ---
+            // --- ULTRA-STRONG 5% CHAOS GALE ---
             if (balloon.y < height * 0.05) {
                 gale.heat = Math.min(gale.maxHeat, gale.heat + gale.buildRate);
             } else {
@@ -150,9 +150,9 @@
             }
 
             if (gale.heat >= gale.maxHeat) {
-                balloon.vy += 0.35; // Violent Downward Push
-                balloon.vx += (Math.random() - 0.5) * 2.2; // Erratic Jitter
-                shakeTimer = Math.max(shakeTimer, 3);
+                balloon.vy += 0.85; // Heavy, Punishing Downward Pressure
+                balloon.vx += (Math.random() - 0.5) * 5.0; // Erratic Jitter
+                shakeTimer = Math.max(shakeTimer, 4);
             } else if (gale.heat > 25) {
                 gale.opacity = (gale.heat - 25) / 75 * 0.55; 
             } else {
@@ -235,7 +235,7 @@
 
             if (gale.heat >= gale.maxHeat) {
                 let isp = score >= MILESTONES[2];
-                ctx.strokeStyle = isp ? "rgba(255, 220, 0, 0.5)" : "rgba(255, 255, 255, 0.5)";
+                ctx.strokeStyle = isp ? "rgba(255, 200, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
                 ctx.lineWidth = 2;
                 for(let i=0; i<12; i++) {
                     let x = (width * 0.08) * i + (width * 0.04);
