@@ -56,8 +56,8 @@
 
     let wind = { phase: 0, timer: 0, warmupTimer: 50, force: 0, visualX: 0, lastScoreBaseline: 0, triggerDistance: 8 };
     
-    // --- GALE HEAT ENGINE ---
-    let gale = { heat: 0, maxHeat: 100, buildRate: 1.5, drainRate: 0.75, opacity: 0 };
+    // --- ERRATIC GALE HEAT ENGINE ---
+    let gale = { heat: 0, maxHeat: 100, buildRate: 1.8, drainRate: 0.8, opacity: 0 };
     
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
@@ -142,19 +142,19 @@
             framesSinceLastTap++; if (framesSinceLastTap > 150) { isOnFire = false; streak = 0; }
             if (squishTimer > 0) squishTimer--;
 
-            // --- HEAT METER LOGIC (10% THRESHOLD) ---
-            if (balloon.y < height * 0.10) {
+            // --- ULTRA-THIN 5% HEAT TRIGGER ---
+            if (balloon.y < height * 0.05) {
                 gale.heat = Math.min(gale.maxHeat, gale.heat + gale.buildRate);
             } else {
                 gale.heat = Math.max(0, gale.heat - gale.drainRate);
             }
 
             if (gale.heat >= gale.maxHeat) {
-                balloon.vy += 0.22; // Downward Slap
-                balloon.vx += (Math.random() - 0.5) * 0.8; // Random Buffeting
-                shakeTimer = Math.max(shakeTimer, 2);
-            } else if (gale.heat > 30) {
-                gale.opacity = (gale.heat - 30) / 70 * 0.45; // Progressive Vignette
+                balloon.vy += 0.35; // Violent Downward Push
+                balloon.vx += (Math.random() - 0.5) * 2.2; // Erratic Jitter
+                shakeTimer = Math.max(shakeTimer, 3);
+            } else if (gale.heat > 25) {
+                gale.opacity = (gale.heat - 25) / 75 * 0.55; 
             } else {
                 gale.opacity = 0;
             }
@@ -225,9 +225,9 @@
             for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xS = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xS, y); ctx.lineTo(xS + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); } ctx.globalAlpha = 1.0;
         }
 
-        // --- ROUNDED RED GALE WARNING ---
+        // --- ROUNDED RED HEAT VIGNETTE ---
         if (gale.opacity > 0) {
-            let grad = ctx.createRadialGradient(width/2, height/2, width*0.1, width/2, height/2, width*0.9);
+            let grad = ctx.createRadialGradient(width/2, height/2, width*0.1, width/2, height/2, width*0.88);
             grad.addColorStop(0, "rgba(255, 0, 0, 0)");
             grad.addColorStop(1, `rgba(255, 0, 0, ${gale.opacity})`);
             ctx.fillStyle = grad;
@@ -235,12 +235,12 @@
 
             if (gale.heat >= gale.maxHeat) {
                 let isp = score >= MILESTONES[2];
-                ctx.strokeStyle = isp ? "rgba(255, 200, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
+                ctx.strokeStyle = isp ? "rgba(255, 220, 0, 0.5)" : "rgba(255, 255, 255, 0.5)";
                 ctx.lineWidth = 2;
-                for(let i=0; i<8; i++) {
-                    let x = (width * 0.12) * i + (width * 0.05);
-                    let yS = (Date.now() * 2 + (i * 150)) % (height + 250) - 150;
-                    ctx.beginPath(); ctx.moveTo(x, yS); ctx.lineTo(x, yS + 140); ctx.stroke();
+                for(let i=0; i<12; i++) {
+                    let x = (width * 0.08) * i + (width * 0.04);
+                    let yS = (Date.now() * 2.2 + (i * 180)) % (height + 300) - 150;
+                    ctx.beginPath(); ctx.moveTo(x, yS); ctx.lineTo(x, yS + 160); ctx.stroke();
                 }
             }
         }
