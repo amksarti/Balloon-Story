@@ -54,11 +54,13 @@
     let hasShield = false, lastBiome = 0, birdSpawnTimer = 0, shieldSpawnTimer = 0, shakeTimer = 0, popTimer = 0;
     let streak = 0, isOnFire = false, squishTimer = 0, framesSinceLastTap = 0;
 
+    // --- TIME-BASED LOGIC VARS ---
+    let lastTime = 0;
+    const TARGET_FPS = 60;
+    const TARGET_FRAME_TIME = 1000 / TARGET_FPS;
+
     let wind = { phase: 0, timer: 0, warmupTimer: 50, force: 0, visualX: 0, lastScoreBaseline: 0, triggerDistance: 8 };
-    
-    // --- BALANCED GALE HEAT (Triggered in ~3-4 taps) ---
     let gale = { heat: 0, maxHeat: 100, buildRate: 0.8, drainRate: 0.4, opacity: 0 };
-    
     let highScore = localStorage.getItem('balloonHighScore') || 0;
 
     function init() {
@@ -72,9 +74,7 @@
         streak = 0; isOnFire = false; squishTimer = 0; framesSinceLastTap = 0;
         wind.phase = 0; wind.timer = 0; wind.force = 0; wind.visualX = 0; wind.lastScoreBaseline = 0;
         wind.triggerDistance = 7 + Math.floor(Math.random() * 5);
-        
         gale.heat = 0; gale.opacity = 0;
-
         document.body.style.background = "#87CEEB";
         scoreEl.innerText = "0"; bestEl.innerText = `Best: ${highScore}`;
         titleEl.innerText = STAGE_NAMES[0]; menuBtn.style.display = 'none';
@@ -129,36 +129,36 @@
 
     window.addEventListener('touchstart', (e) => { handleInput(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
     window.addEventListener('mousedown', (e) => { handleInput(e.clientX, e.clientY); });
-    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && gameState === 'START') startGame(); if (e.code === 'KeyM' && gameState === 'PLAYING') endGameManually(); });
 
-    function update() {
-        if (gameState === 'POPPING') { popTimer--; fragments.forEach(f => { f.x += f.vx; f.y += f.vy; f.vy += 0.2; }); if (popTimer <= 0) showGameOverUI(); }
+    function update(timestamp) {
+        // Calculate Delta Ratio
+        if (!lastTime) lastTime = timestamp;
+        const dt = timestamp - lastTime;
+        lastTime = timestamp;
+        let dtRatio = dt / TARGET_FRAME_TIME;
+        if (dtRatio > 3.0) dtRatio = 1.0; // Safety cap for pauses
+
+        if (gameState === 'POPPING') { popTimer -= dtRatio; fragments.forEach(f => { f.x += f.vx * dtRatio; f.y += f.vy * dtRatio; f.vy += 0.2 * dtRatio; }); if (popTimer <= 0) showGameOverUI(); }
 
         if (gameState === 'PLAYING') {
             let b = 0; if (score >= MILESTONES[0]) b = 1; if (score >= MILESTONES[1]) b = 2; if (score >= MILESTONES[2]) b = 3; if (score >= MILESTONES[3]) b = 4;
             if (b !== lastBiome) { lastBiome = b; backdrops = []; decor = []; for(let i=0; i<12; i++) spawnItem(true); document.body.style.background = ["#87CEEB", "#4A90E2", "#1A2B44", "#0A0A1A", "#050505"][b]; titleEl.innerText = STAGE_NAMES[b]; gravity = GRAV_TIERS[b]; triggerMilestone(STAGE_NAMES[b]); }
 
-            backdrops.forEach(b => b.x -= b.speed); decor.forEach(d => d.x -= d.speed); clouds.forEach(c => c.x -= c.speed);
-            framesSinceLastTap++; if (framesSinceLastTap > 150) { isOnFire = false; streak = 0; }
-            if (squishTimer > 0) squishTimer--;
+            backdrops.forEach(b => b.x -= b.speed * dtRatio); decor.forEach(d => d.x -= d.speed * dtRatio); clouds.forEach(c => c.x -= c.speed * dtRatio);
+            framesSinceLastTap += dtRatio; if (framesSinceLastTap > 150) { isOnFire = false; streak = 0; }
+            if (squishTimer > 0) squishTimer -= dtRatio;
 
-            // --- ULTRA-STRONG 5% CHAOS GALE ---
-            if (balloon.y < height * 0.05) {
-                gale.heat = Math.min(gale.maxHeat, gale.heat + gale.buildRate);
-            } else {
-                gale.heat = Math.max(0, gale.heat - gale.drainRate);
-            }
+            // --- 5% CHAOS GALE ---
+            if (balloon.y < height * 0.05) { gale.heat = Math.min(gale.maxHeat, gale.heat + (gale.buildRate * dtRatio)); }
+            else { gale.heat = Math.max(0, gale.heat - (gale.drainRate * dtRatio)); }
 
             if (gale.heat >= gale.maxHeat) {
-                balloon.vy += 0.85; // Heavy Downward Pressure
-                balloon.vx += (Math.random() - 0.5) * 5.0; // Erratic Jitter
+                balloon.vy += 0.85 * dtRatio; 
+                balloon.vx += (Math.random() - 0.5) * 5.0 * dtRatio;
                 shakeTimer = Math.max(shakeTimer, 4);
-            } else if (gale.heat > 25) {
-                gale.opacity = (gale.heat - 25) / 75 * 0.55; 
-            } else {
-                gale.opacity = 0;
-            }
+            } else if (gale.heat > 25) { gale.opacity = (gale.heat - 25) / 75 * 0.55; } else { gale.opacity = 0; }
 
+            // --- WIND ENGINE ---
             if (wind.phase === 0) { 
                 if (score - wind.lastScoreBaseline >= wind.triggerDistance) {
                     wind.phase = 1; wind.timer = wind.warmupTimer;
@@ -167,25 +167,28 @@
                     wind.visualX = 0; 
                 }
             } else if (wind.phase === 1) { 
-                shakeTimer = 2; wind.timer--;
-                wind.visualX += wind.force * 6;
+                shakeTimer = 2; wind.timer -= dtRatio;
+                wind.visualX += wind.force * 6 * dtRatio;
                 if (wind.timer <= 0) { wind.phase = 2; let isSpace = score >= MILESTONES[2]; wind.timer = isSpace ? 110 : 230; shakeTimer = 22; }
             } else if (wind.phase === 2) { 
-                balloon.vx += wind.force * 0.05; wind.timer--; wind.visualX += wind.force * 18;
+                balloon.vx += wind.force * 0.05 * dtRatio; wind.timer -= dtRatio; wind.visualX += wind.force * 18 * dtRatio;
                 if (wind.timer <= 0) { wind.phase = 0; wind.lastScoreBaseline = score; wind.triggerDistance = 7 + Math.floor(Math.random() * 5); }
             }
 
-            balloon.vy += gravity; balloon.y += balloon.vy; balloon.x += balloon.vx; 
-            balloon.vx *= (wind.phase > 0) ? 0.98 : 0.92;
+            balloon.vy += gravity * dtRatio; 
+            balloon.y += balloon.vy * dtRatio; 
+            balloon.x += balloon.vx * dtRatio; 
+
+            balloon.vx *= Math.pow((wind.phase > 0) ? 0.98 : 0.92, dtRatio);
             if (balloon.x < balloon.radius) { balloon.x = balloon.radius; balloon.vx = Math.abs(balloon.vx) * 0.5 + 1.2; }
             if (balloon.x > width - balloon.radius) { balloon.x = width - balloon.radius; balloon.vx = -(Math.abs(balloon.vx) * 0.5 + 1.2); }
-            if (score >= MILESTONES[2] && currentGroundY < height * 0.94) currentGroundY += 3;
+            if (score >= MILESTONES[2] && currentGroundY < height * 0.94) currentGroundY += 3 * dtRatio;
             
-            birdSpawnTimer++; if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
-            shieldSpawnTimer++; const sThreshold = hasShield ? 600 : Math.max(80, 400 - score * 12); if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
+            birdSpawnTimer += dtRatio; if (birdSpawnTimer > Math.max(35, 140 - score*2.5)) { spawnObstacle(); birdSpawnTimer = 0; }
+            shieldSpawnTimer += dtRatio; const sThreshold = hasShield ? 600 : Math.max(80, 400 - score * 12); if (shieldSpawnTimer > sThreshold) { spawnShield(); shieldSpawnTimer = 0; }
 
             obstacles.forEach((o, i) => {
-                o.x += o.vx; o.wing += 0.15;
+                o.x += o.vx * dtRatio; o.wing += 0.15 * dtRatio;
                 let d = Math.sqrt((balloon.x-o.x)**2 + (balloon.y-o.y)**2);
                 if (d < balloon.radius + 15) { 
                     if (isOnFire) { isOnFire = false; streak = 0; shakeTimer = 25; obstacles.splice(i, 1); }
@@ -195,22 +198,20 @@
                 if (o.x < -250 || o.x > width + 250) obstacles.splice(i, 1);
             });
             if (shieldItem) {
-                shieldItem.y += 1.8; let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
+                shieldItem.y += 1.8 * dtRatio; let d = Math.sqrt((balloon.x-shieldItem.x)**2 + (balloon.y-shieldItem.y)**2);
                 if (d < balloon.radius + 20) { hasShield = true; shieldItem = null; } else if (shieldItem.y > height) shieldItem = null;
             }
             if (balloon.y + balloon.radius > currentGroundY) { balloon.y = currentGroundY - balloon.radius; balloon.vy = -Math.abs(balloon.vy) * 0.5; streak = 0; isOnFire = false; }
             let rmost = 0; backdrops.forEach(b => { if(b.x + b.w > rmost) rmost = b.x + b.w; });
             if (rmost < width + 100) spawnItem();
         }
-        if (shakeTimer > 0) shakeTimer--; draw(); requestAnimationFrame(update);
+        if (shakeTimer > 0) shakeTimer -= dtRatio; draw(); requestAnimationFrame(update);
     }
 
     function draw() {
         ctx.save(); if (shakeTimer > 0) ctx.translate(Math.random()*10-5, Math.random()*10-5); ctx.clearRect(0, 0, width, height);
-        
         clouds.forEach(c => { ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`; ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.fill(); });
         if (score >= MILESTONES[0]) { ctx.fillStyle = "white"; stars.forEach(s => { ctx.globalAlpha = Math.random(); ctx.fillRect(s.x, s.y, s.s, s.s); }); ctx.globalAlpha = 1.0; }
-        
         backdrops.forEach(b => {
             ctx.fillStyle = (score >= MILESTONES[0]) ? "#111" : "#2d4d2d";
             if (b.type === "hill") { ctx.beginPath(); ctx.ellipse(b.x + b.w/2, currentGroundY, b.w, b.h, 0, 0, Math.PI, true); ctx.fill(); }
@@ -218,25 +219,17 @@
             else if (b.type === "mountain") { ctx.fillStyle = "#0a0a0a"; ctx.beginPath(); ctx.moveTo(b.x, currentGroundY); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w, currentGroundY); ctx.fill(); ctx.fillStyle = "white"; ctx.beginPath(); ctx.moveTo(b.x + b.w*0.4, currentGroundY - b.h*0.8); ctx.lineTo(b.x + b.w/2, currentGroundY - b.h); ctx.lineTo(b.x + b.w*0.6, currentGroundY - b.h*0.8); ctx.fill(); }
         });
         decor.forEach(d => { ctx.fillStyle = "#1a331a"; ctx.fillRect(d.x, currentGroundY - d.h, d.w/4, d.h); ctx.beginPath(); ctx.moveTo(d.x - d.w/2, currentGroundY - d.h*0.3); ctx.lineTo(d.x + d.w/8, currentGroundY - d.h*1.2); ctx.lineTo(d.x + d.w, currentGroundY - d.h*0.3); ctx.fill(); });
-
         if (wind.phase > 0 && wind.timer > 0) {
             let isp = score >= MILESTONES[2]; ctx.globalAlpha = (wind.phase === 1) ? 0.35 : 0.65;
             ctx.strokeStyle = isp ? "rgba(255, 100, 0, 1)" : "rgba(255, 255, 255, 1)"; ctx.lineWidth = isp ? 10 : 5;
             for(let i=0; i<8; i++) { let y = (height * 0.1) + i * (height * 0.1); let xS = (wind.visualX + (i * 150)) % (width + 300) - 150; ctx.beginPath(); ctx.moveTo(xS, y); ctx.lineTo(xS + (wind.force > 0 ? 150 : -150), y); ctx.stroke(); } ctx.globalAlpha = 1.0;
         }
-
-        // --- ROUNDED RED HEAT VIGNETTE ---
         if (gale.opacity > 0) {
             let grad = ctx.createRadialGradient(width/2, height/2, width*0.1, width/2, height/2, width*0.88);
-            grad.addColorStop(0, "rgba(255, 0, 0, 0)");
-            grad.addColorStop(1, `rgba(255, 0, 0, ${gale.opacity})`);
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-
+            grad.addColorStop(0, "rgba(255, 0, 0, 0)"); grad.addColorStop(1, `rgba(255, 0, 0, ${gale.opacity})`);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, width, height);
             if (gale.heat >= gale.maxHeat) {
-                let isp = score >= MILESTONES[2];
-                ctx.strokeStyle = isp ? "rgba(255, 200, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
-                ctx.lineWidth = 2;
+                let isp = score >= MILESTONES[2]; ctx.strokeStyle = isp ? "rgba(255, 200, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 2;
                 for(let i=0; i<12; i++) {
                     let x = (width * 0.08) * i + (width * 0.04);
                     let yS = (Date.now() * 2.2 + (i * 180)) % (height + 300) - 150;
@@ -244,27 +237,22 @@
                 }
             }
         }
-
         if (score >= MILESTONES[2]) { ctx.strokeStyle = "rgba(0, 162, 255, 0.8)"; ctx.lineWidth = 15; ctx.beginPath(); ctx.arc(width/2, currentGroundY + (height*2.5), height*2.6, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle = "rgba(0, 50, 150, 0.4)"; ctx.fill(); }
         if (currentGroundY < height + 50) { ctx.fillStyle = score < MILESTONES[0] ? '#4CAF50' : (score < MILESTONES[1] ? '#444' : '#0a0a0a'); ctx.fillRect(0, currentGroundY, width, height); }
-        
         obstacles.forEach(o => { ctx.lineWidth = 5; ctx.strokeStyle = (score >= MILESTONES[0]) ? "white" : "#333"; if (o.type === "satellite") { ctx.strokeStyle = "#00F2FF"; ctx.fillStyle = "#888"; ctx.fillRect(o.x-15, o.y-5, 30, 10); ctx.fillStyle = "#00F2FF"; ctx.fillRect(o.x-25, o.y-8, 10, 16); ctx.fillRect(o.x+15, o.y-8, 10, 16); } else { let w = Math.sin(o.wing)*10; ctx.beginPath(); ctx.moveTo(o.x-18, o.y+w); ctx.lineTo(o.x, o.y); ctx.lineTo(o.x+18, o.y+w); ctx.stroke(); } });
-        
         if (shieldItem) { let isp = score >= MILESTONES[2]; ctx.fillStyle = isp ? "#BF5AF2" : "#48C9B0"; ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; ctx.beginPath(); ctx.arc(shieldItem.x, shieldItem.y, 15, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
         if (gameState === 'POPPING') { ctx.fillStyle = balloon.color; fragments.forEach(f => { ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill(); }); }
-        
         if (gameState === 'PLAYING') {
             ctx.beginPath(); ctx.moveTo(balloon.x, balloon.y + balloon.radius); ctx.lineTo(balloon.x - (balloon.vx * 4), balloon.y + balloon.radius + 35); ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = 2; ctx.stroke();
             ctx.save(); ctx.translate(balloon.x, balloon.y);
             if (squishTimer > 0) { let intensity = (squishTimer / 12) * 0.15; let sY = 1 - intensity; let sX = 1 + intensity * 0.5; ctx.scale(sX, sY); }
             if (isOnFire) { ctx.shadowBlur = 25; ctx.shadowColor = "#FFA500"; ctx.fillStyle = "#FF8C00"; } else { ctx.fillStyle = balloon.color; }
-            ctx.beginPath(); ctx.arc(0, 0, balloon.radius, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore();
+            ctx.beginPath(); ctx.arc(0, 0, balloon.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
             if (hasShield) { let isp = score >= MILESTONES[2]; ctx.strokeStyle = isp ? "#BF5AF2" : "#48C9B0"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(balloon.x, balloon.y, balloon.radius + 12, 0, Math.PI*2); ctx.stroke(); }
         }
         ctx.restore();
     }
-    init(); update();
+    init(); requestAnimationFrame(update);
 </script>
 
 <script>
