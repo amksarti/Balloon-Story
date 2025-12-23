@@ -122,7 +122,7 @@
             balloon.vy = TAP_POWER; balloon.vx = (balloon.x - posX) * 0.45;
             score++; scoreEl.innerText = score;
             streak++; framesSinceLastTap = 0; squishTimer = 12;
-            if (streak >= 12 && !isOnFire) { isOnFire = true; triggerMilestone("ENFLAMED"); }
+            if (streak >= 12 && !isOnFire) { isOnFire = true; triggerMilestone("BOOST"); }
             if (!godToggle.checked && score > highScore) { highScore = score; localStorage.setItem('balloonHighScore', highScore); bestEl.innerText = `Best: ${highScore}`; }
         }
     }
