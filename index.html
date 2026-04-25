@@ -27,11 +27,11 @@
     </style>
 </head>
 <body>
-    <div id="ui"><div id="title">Park Wanderer</div><div id="score-container"><span id="current-score">0</span><span id="best-score">Best: 0</span></div></div>
+    <div id="ui"><div id="title">Level 1</div><div id="score-container"><span id="current-score">0</span><span id="best-score">Best: 0</span></div></div>
     <button id="menu-btn" onclick="endGameManually()">Menu</button>
     <div id="start-overlay" class="overlay"><h1 class="game-title">BALLOON STORY</h1><p style="opacity: 0.8; font-size: 1.1rem; margin-top: 8px;">Tap to play</p><div class="toggle-box"><label><input type="checkbox" id="god-toggle"> Invincible</label></div><button class="btn" onclick="startGame()">Play</button></div>
     <div id="gameover-overlay" class="overlay" style="display: none;"><h1 class="game-title" style="color: #FADBD8;">GAME OVER</h1><p id="final-stats" style="margin: 15px 0; font-size: 1.2rem; font-weight: 700;"></p><button class="btn" onclick="resetToStart()">Try Again</button></div>
-    <div id="milestone-pop">URBAN VOYAGER</div>
+    <div id="milestone-pop">LEVEL 2</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -47,7 +47,7 @@
     const GRAV_TIERS = [0.24, 0.22, 0.20, 0.18, 0.12];
     const TAP_POWER = -8.8;
     const MILESTONES = [15, 35, 60, 100]; 
-    const STAGE_NAMES = ["Park Wanderer", "Urban Voyager", "Peak Seeker", "Astronaut", "Exosphere"];
+    const STAGE_NAMES = ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5"];
 
     let width, height, balloon, score, gameState, gravity, currentGroundY;
     let backdrops = [], clouds = [], stars = [], obstacles = [], decor = [], fragments = [], shieldItem = null;
